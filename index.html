@@ -714,7 +714,9 @@
                    :class="syncReport.warnings || syncReport.skipped ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'">
             <div>
               <div class="text-xs font-black text-slate-700">最近同步資料檢查 · {{ syncReport.period }}</div>
-              <div class="text-[10px] text-slate-500 font-semibold mt-0.5">收到 {{ syncReport.received }} 筆，新增 {{ syncReport.merged }} 筆，重複 {{ syncReport.duplicates }} 筆</div>
+              <div class="text-[10px] text-slate-500 font-semibold mt-0.5">
+                收到 {{ syncReport.received || 0 }} 筆 · 新增 {{ syncReport.merged || 0 }} · 更新 {{ syncReport.updated || 0 }} · 取消 {{ syncReport.cancelled || 0 }} · 未變更 {{ syncReport.unchanged ?? syncReport.duplicates ?? 0 }}
+              </div>
             </div>
             <div class="text-[10px] font-black" :class="syncReport.warnings || syncReport.skipped ? 'text-amber-700' : 'text-emerald-700'">
               {{ syncReport.warnings || syncReport.skipped ? `需確認 ${syncReport.warnings + syncReport.skipped} 筆異常` : '資料格式正常' }}
@@ -1138,7 +1140,7 @@
                    :class="syncReport.warnings || syncReport.skipped ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'">
             <div class="min-w-0">
               <div class="text-xs font-black text-slate-700">行事曆同步完成</div>
-              <div class="text-[10px] text-slate-500 font-semibold truncate">新增 {{ syncReport.merged }} · 重複 {{ syncReport.duplicates }} · 異常 {{ syncReport.warnings + syncReport.skipped }}</div>
+              <div class="text-[10px] text-slate-500 font-semibold truncate">新增 {{ syncReport.merged || 0 }} · 更新 {{ syncReport.updated || 0 }} · 取消 {{ syncReport.cancelled || 0 }} · 異常 {{ (syncReport.warnings || 0) + (syncReport.skipped || 0) }}</div>
             </div>
             <span class="text-[10px] font-black whitespace-nowrap" :class="syncReport.warnings || syncReport.skipped ? 'text-amber-700' : 'text-emerald-700'">
               {{ syncReport.period }}
@@ -1370,6 +1372,20 @@
                     </select>
                   </div>
                 </div>
+                <div v-if="newOrder.paymentMethod === '現金＋儲值扣款'" class="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-sky-50/60 border border-sky-100">
+                  <label class="block">
+                    <span class="block text-xs font-black text-slate-500 mb-1">現金付款</span>
+                    <input type="number" v-model.number="newOrder.cashAmount" required min="1" :max="Math.max(1, (Number(newOrder.amount) || 0) - 1)"
+                           inputmode="decimal" placeholder="現金金額"
+                           class="w-full jelly-input bg-white border border-sky-100 rounded-xl px-3 py-2.5 text-sm font-black text-slate-700">
+                  </label>
+                  <div>
+                    <span class="block text-xs font-black text-slate-500 mb-1">儲值扣款</span>
+                    <div class="min-h-[42px] flex items-center justify-end rounded-xl bg-white border border-sky-100 px-3 text-sm font-black text-sky-700">
+                      NT$ {{ formatNumber(Math.max(0, (Number(newOrder.amount) || 0) - (Number(newOrder.cashAmount) || 0))) }}
+                    </div>
+                  </div>
+                </div>
                 <button type="submit" 
                         class="jelly-btn w-full bg-gradient-to-r from-macaron-peach-400 to-macaron-rose hover:from-macaron-peach-500 hover:to-macaron-rose text-white font-extrabold py-3 rounded-2xl shadow-md hover:shadow-lg transition-all text-sm mt-2">
                   🍭 寫入業績資料庫
@@ -1418,6 +1434,7 @@
                       <option value="All">全部付款</option>
                       <option value="現金">💵 現金</option>
                       <option value="儲值扣款">➖ 儲值扣款</option>
+                      <option value="現金＋儲值扣款">💵➖ 混合付款</option>
                       <option value="儲值進帳">➕ 儲值進帳</option>
                     </select>
                   </div>
@@ -1498,6 +1515,7 @@
                               <span class="text-[10px] font-black px-1.5 py-0.5 rounded-lg shrink-0" :style="{ backgroundColor: getCategoryInfo(order).bg, color: getCategoryInfo(order).color }">{{ getCategoryInfo(order).label }}</span>
                               <span>{{ order.serviceName }}</span>
                               <span v-if="order.paymentMethod === '儲值進帳'" class="text-[9px] font-black text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-md">非服務業績</span>
+                              <span v-if="order.paymentMethod === '現金＋儲值扣款'" class="text-[9px] font-black text-amber-700">現 {{ formatNumber(getMixedCashAmount(order)) }}／儲 {{ formatNumber(getMixedPrepaidAmount(order)) }}</span>
                             </div>
                           </td>
                           <td class="py-3 px-3 text-right font-black">NT$ {{ formatNumber(order.amount) }}</td>
@@ -1516,6 +1534,10 @@
                               <label class="col-span-3 text-[10px] font-black text-slate-400">服務內容<input type="text" v-model="order.serviceName" @change="saveOrders" list="common-services" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700"></label>
                               <label class="col-span-2 text-[10px] font-black text-slate-400">金額<input type="number" v-model.number="order.amount" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-black text-right"></label>
                               <label class="col-span-2 text-[10px] font-black text-slate-400">付款方式<select v-model="order.paymentMethod" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold"><option v-for="m in paymentMethods" :key="m" :value="m">{{ m }}</option></select></label>
+                              <div v-if="order.paymentMethod === '現金＋儲值扣款'" class="col-span-4 grid grid-cols-2 gap-2 p-2 rounded-xl bg-sky-50 border border-sky-100">
+                                <label class="text-[10px] font-black text-slate-500">現金付款<input type="number" v-model.number="order.cashAmount" @change="saveOrders" min="0" :max="Number(order.amount) || 0" class="mt-1 w-full bg-white border border-sky-100 rounded-lg px-3 py-2 text-sm font-black text-right"></label>
+                                <div class="text-[10px] font-black text-slate-500">儲值扣款<div class="mt-1 min-h-[38px] flex items-center justify-end bg-white border border-sky-100 rounded-lg px-3 text-sm font-black text-sky-700">NT$ {{ formatNumber(getMixedPrepaidAmount(order)) }}</div></div>
+                              </div>
                               <button @click.stop="deleteOrder(order.id)" class="col-span-2 min-h-[40px] rounded-xl bg-rose-50 border border-rose-100 text-rose-500 text-xs font-black jelly-btn">刪除此筆</button>
                             </div>
                           </td>
@@ -1546,6 +1568,7 @@
                         </div>
                       </div>
                       <div v-if="order.paymentMethod === '儲值進帳'" class="mt-2 text-[9px] font-black text-purple-600">非服務業績，不計入上方摘要</div>
+                      <div v-if="order.paymentMethod === '現金＋儲值扣款'" class="mt-2 text-[10px] font-black text-amber-700">現金 NT$ {{ formatNumber(getMixedCashAmount(order)) }} · 儲值扣款 NT$ {{ formatNumber(getMixedPrepaidAmount(order)) }}</div>
                     </button>
                     <div v-if="expandedOrderId === order.id" class="p-3.5 pt-0 border-t border-orange-50 bg-orange-50/25 space-y-3">
                       <div class="grid grid-cols-3 gap-2 pt-3">
@@ -1556,6 +1579,10 @@
                       <div class="grid grid-cols-2 gap-2">
                         <label class="text-[10px] font-black text-slate-400">金額<input type="number" inputmode="decimal" v-model.number="order.amount" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-black text-right"></label>
                         <label class="text-[10px] font-black text-slate-400">付款方式<select v-model="order.paymentMethod" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-2 py-2.5 text-xs font-bold"><option v-for="m in paymentMethods" :key="m" :value="m">{{ m }}</option></select></label>
+                      </div>
+                      <div v-if="order.paymentMethod === '現金＋儲值扣款'" class="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-sky-50 border border-sky-100">
+                        <label class="text-[10px] font-black text-slate-500">現金付款<input type="number" inputmode="decimal" v-model.number="order.cashAmount" @change="saveOrders" min="0" :max="Number(order.amount) || 0" class="mt-1 w-full bg-white border border-sky-100 rounded-lg px-3 py-2.5 text-sm font-black text-right"></label>
+                        <div class="text-[10px] font-black text-slate-500">儲值扣款<div class="mt-1 min-h-[42px] flex items-center justify-end bg-white border border-sky-100 rounded-lg px-3 text-sm font-black text-sky-700">NT$ {{ formatNumber(getMixedPrepaidAmount(order)) }}</div></div>
                       </div>
                       <button @click="deleteOrder(order.id)" class="w-full min-h-[42px] rounded-xl bg-rose-50 border border-rose-100 text-rose-500 text-xs font-black jelly-btn">刪除此筆業績</button>
                     </div>
@@ -2769,42 +2796,11 @@
   <script>
     const { createApp } = Vue;
 
-    // Default Mock Data in case LocalStorage is empty
-    // 動態產生 Mock 資料日期（當年當月）
-    const _mockNow = new Date();
-    const _mockY = _mockNow.getFullYear();
-    const _mockM = String(_mockNow.getMonth() + 1).padStart(2, '0');
-    const _d = (day) => `${_mockY}-${_mockM}-${String(day).padStart(2, '0')}`;
-
-    const defaultOrders = [
-      { id: 'mock_1', date: _d(1), customerName: '怡君', gender: '女', serviceName: '洗+剪', amount: 800, paymentMethod: '現金' },
-      { id: 'mock_2', date: _d(2), customerName: '冠宇', gender: '男', serviceName: '[單色染髮]男生短髮', amount: 2200, paymentMethod: '現金' },
-      { id: 'mock_3', date: _d(3), customerName: '美玲', gender: '女', serviceName: '結構式護髮', amount: 1800, paymentMethod: '現金' },
-      { id: 'mock_4', date: _d(4), customerName: '雅婷', gender: '女', serviceName: '頭皮初淨調理', amount: 1500, paymentMethod: '儲值扣款' },
-      { id: 'mock_5', date: _d(4), customerName: '雅婷', gender: '女', serviceName: '儲值專用', amount: 5000, paymentMethod: '儲值進帳' },
-      { id: 'mock_6', date: _d(5), customerName: '家豪', gender: '男', serviceName: '健康髮浴+剪', amount: 1200, paymentMethod: '現金' },
-      { id: 'mock_7', date: _d(6), customerName: '怡君', gender: '女', serviceName: '髮絲水潤修護', amount: 1500, paymentMethod: '現金' },
-      { id: 'mock_8', date: _d(8), customerName: '芊芊', gender: '女', serviceName: '剪髮', amount: 600, paymentMethod: '現金' }
-    ];
-
-    const defaultExpenses = [
-      { id: 'exp_1', date: _d(2), category: '材料費', amount: 3500, notes: '進貨日本染膏 10 支' },
-      { id: 'exp_2', date: _d(5), category: '水電費', amount: 1800, notes: '5月份電費' },
-      { id: 'exp_3', date: _d(8), category: '材料費', amount: 1200, notes: '補充洗髮精 2 罐' }
-    ];
-
-    const defaultInventory = [
-      { id: 'inv_1', name: '修護洗髮乳 (500ml)', stock: 5, notes: '日本原裝，沙龍專用' },
-      { id: 'inv_2', name: '頭皮調理噴霧 (100ml)', stock: 2, notes: '低於3件警示，需補貨' },
-      { id: 'inv_3', name: '結構式護髮素 A劑', stock: 1, notes: '低於3件警示，需補貨' },
-      { id: 'inv_4', name: '經典定型霧 (300ml)', stock: 8, notes: '日常熱銷' }
-    ];
-
-    const defaultCrmNotes = {
-      '怡君': '敏感性頭皮，洗髮時力道要輕，水溫偏好溫涼。\n配方：染髮使用 7-CB 巧克力棕，搭配 6% 雙氧。',
-      '冠宇': '鬢角剪短，偏好日系抓整風格。\n配方：挑染使用漂粉1次，上色 8-MT 薄荷灰。',
-      '美玲': '喜歡喝熱水。注重髮質保養。\n配方：每兩週做一次結構式護髮，居家搭配護髮素。'
-    };
+    // 空白初始資料；正式資料由行事曆同步或手動建立
+    const defaultOrders = [];
+    const defaultExpenses = [];
+    const defaultInventory = [];
+    const defaultCrmNotes = {};
 
     // 每日一則台式幽默 / 冷知識 / 髮型師語錄 (共 31 則，按日期輪播)
     const dailyGreetings = [
@@ -2937,7 +2933,8 @@
             gender: '女',
             serviceName: '',
             amount: null,
-            paymentMethod: '現金'
+            paymentMethod: '現金',
+            cashAmount: null
           },
           newExpense: {
             date: todayStr,
@@ -2959,7 +2956,7 @@
           ordersFilterPayment:  'All',  // D: 付款方式篩選
           
           // Constants
-          paymentMethods: ['現金', '儲值扣款', '儲值進帳'],
+          paymentMethods: ['現金', '儲值扣款', '現金＋儲值扣款', '儲值進帳'],
           expenseCategories: ['材料費', '房租', '水電費', '行銷費', '薪資', '其他'],
           formulaFields: [
             { key: 'color', label: '染髮配方 / 色號', placeholder: '例：8N + 8A，1:1' },
@@ -3001,7 +2998,7 @@
             const [y, m] = o.date.split('-');
             const yearMatch  = y === this.selectedYear;
             const monthMatch = this.selectedMonth === 'All' || m === this.selectedMonth;
-            const validName  = o.customerName && o.customerName.trim() && !this.isBlockedSlot(o.customerName);
+            const validName  = this.isOrderActive(o) && o.customerName && o.customerName.trim() && !this.isBlockedSlot(o.customerName);
             return yearMatch && monthMatch && validName;
           }).sort((a, b) => b.date.localeCompare(a.date));
         },
@@ -3054,12 +3051,12 @@
         todayRevenue() {
           const todayStr = new Date().toLocaleDateString('sv-SE');
           return this.orders
-            .filter(o => o.date === todayStr && o.customerName && !this.isBlockedSlot(o.customerName) && o.paymentMethod !== '儲值進帳')
+            .filter(o => this.isOrderActive(o) && o.date === todayStr && o.customerName && !this.isBlockedSlot(o.customerName) && o.paymentMethod !== '儲值進帳')
             .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
         },
         todayOrdersCount() {
           const todayStr = new Date().toLocaleDateString('sv-SE');
-          return this.orders.filter(o => o.date === todayStr && o.customerName && !this.isBlockedSlot(o.customerName) && o.paymentMethod !== '儲值進帳').length;
+          return this.orders.filter(o => this.isOrderActive(o) && o.date === todayStr && o.customerName && !this.isBlockedSlot(o.customerName) && o.paymentMethod !== '儲值進帳').length;
         },
         todayDateLabel() {
           const d = new Date();
@@ -3068,7 +3065,7 @@
         todayOrders() {
           const todayStr = new Date().toLocaleDateString('sv-SE');
           return this.orders
-            .filter(o => o.date === todayStr && o.customerName && !this.isBlockedSlot(o.customerName))
+            .filter(o => this.isOrderActive(o) && o.date === todayStr && o.customerName && !this.isBlockedSlot(o.customerName))
             .sort((a, b) => String(a.id).localeCompare(String(b.id)));
         },
         nextTodayOrder() {
@@ -3097,6 +3094,10 @@
             const amount = Number(o.amount) || 0;
             if (o.paymentMethod === '現金') totals.cash += amount;
             else if (o.paymentMethod === '儲值扣款') totals.prepaidOut += amount;
+            else if (o.paymentMethod === '現金＋儲值扣款') {
+              totals.cash += this.getMixedCashAmount(o);
+              totals.prepaidOut += this.getMixedPrepaidAmount(o);
+            }
             else if (o.paymentMethod === '儲值進帳') totals.prepaidIn += amount;
             else totals.other += amount;
 
@@ -3130,12 +3131,16 @@
 
         // Reconciliation
         paymentReconciliation() {
-          const dict = {};
-          this.paymentMethods.forEach(m => { dict[m] = 0; });
+          const dict = { '現金': 0, '儲值扣款': 0, '儲值進帳': 0 };
           dict['其他'] = 0; // 舊版付款方式（LinePay、轉帳）歸類於此
           this.filteredOrders.forEach(o => {
-            const method = dict[o.paymentMethod] !== undefined ? o.paymentMethod : '其他';
-            dict[method] += (Number(o.amount) || 0);
+            if (o.paymentMethod === '現金＋儲值扣款') {
+              dict['現金'] += this.getMixedCashAmount(o);
+              dict['儲值扣款'] += this.getMixedPrepaidAmount(o);
+            } else {
+              const method = dict[o.paymentMethod] !== undefined ? o.paymentMethod : '其他';
+              dict[method] += (Number(o.amount) || 0);
+            }
           });
           // 金額為 0 的「其他」不顯示
           if (!dict['其他']) delete dict['其他'];
@@ -3152,7 +3157,7 @@
                 .filter(o => {
                   const [y, m] = o.date.split('-');
                   const notBlocked = o.customerName && !this.isBlockedSlot(o.customerName);
-                  return y === this.selectedYear && m === mStr && notBlocked && o.paymentMethod !== '儲值進帳';
+                  return this.isOrderActive(o) && y === this.selectedYear && m === mStr && notBlocked && o.paymentMethod !== '儲值進帳';
                 })
                 .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
               return { label: `${i + 1}月`, total, key: i + 1 };
@@ -3166,7 +3171,7 @@
             return Array.from({ length: daysInMonth }, (_, i) => {
               const dayStr = `${this.selectedYear}-${this.selectedMonth}-${String(i + 1).padStart(2, '0')}`;
               const total = this.orders
-                .filter(o => o.date === dayStr && o.customerName && !this.isBlockedSlot(o.customerName) && o.paymentMethod !== '儲值進帳')
+                .filter(o => this.isOrderActive(o) && o.date === dayStr && o.customerName && !this.isBlockedSlot(o.customerName) && o.paymentMethod !== '儲值進帳')
                 .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
               return { label: `${i + 1}日`, total, key: i + 1 };
             });
@@ -3373,6 +3378,7 @@
           
           // First pass: aggregate all historical visits, consumption, prepaid amounts, and service history
           this.orders.forEach(o => {
+            if (!this.isOrderActive(o)) return;
             const name = o.customerName;
             if (!name || !name.trim()) return;
             if (this.isBlockedSlot(name)) return;
@@ -3412,6 +3418,8 @@
               });
               if (o.paymentMethod === '儲值扣款') {
                 map[name].prepaidOut += amount;
+              } else if (o.paymentMethod === '現金＋儲值扣款') {
+                map[name].prepaidOut += this.getMixedPrepaidAmount(o);
               }
             }
           });
@@ -3511,6 +3519,7 @@
             const monthOrders = this.orders.filter(o => {
               const [y, m] = o.date.split('-');
               return y === lastYear && m === mStr
+                && this.isOrderActive(o)
                 && o.customerName && !this.isBlockedSlot(o.customerName)
                 && o.paymentMethod !== '儲值進帳';
             });
@@ -3537,6 +3546,7 @@
             const monthOrders = this.orders.filter(o => {
               const [y, m] = o.date.split('-');
               return y === this.selectedYear && m === mStr
+                && this.isOrderActive(o)
                 && o.customerName && !this.isBlockedSlot(o.customerName)
                 && o.paymentMethod !== '儲值進帳';
             });
@@ -3565,17 +3575,23 @@
         annualCashPosition() {
           const yearOrders = this.orders.filter(o => {
             const [year] = (o.date || '').split('-');
-            return year === this.selectedYear && o.customerName && !this.isBlockedSlot(o.customerName);
+            return this.isOrderActive(o) && year === this.selectedYear && o.customerName && !this.isBlockedSlot(o.customerName);
           });
           const cashIn = yearOrders
-            .filter(o => o.paymentMethod !== '儲值扣款')
-            .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+            .reduce((sum, o) => {
+              if (o.paymentMethod === '儲值扣款') return sum;
+              if (o.paymentMethod === '現金＋儲值扣款') return sum + this.getMixedCashAmount(o);
+              return sum + (Number(o.amount) || 0);
+            }, 0);
           const prepaidIn = yearOrders
             .filter(o => o.paymentMethod === '儲值進帳')
             .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
           const prepaidOut = yearOrders
-            .filter(o => o.paymentMethod === '儲值扣款')
-            .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+            .reduce((sum, o) => {
+              if (o.paymentMethod === '儲值扣款') return sum + (Number(o.amount) || 0);
+              if (o.paymentMethod === '現金＋儲值扣款') return sum + this.getMixedPrepaidAmount(o);
+              return sum;
+            }, 0);
           return { cashIn, prepaidIn, prepaidOut };
         },
         reportComparisons() {
@@ -3679,6 +3695,7 @@
             .filter(o => {
               const [y] = o.date.split('-');
               return y === this.selectedYear && o.customerName
+                && this.isOrderActive(o)
                 && !this.isBlockedSlot(o.customerName)
                 && o.paymentMethod !== '儲值進帳';
             })
@@ -3842,6 +3859,30 @@
 
           if (savedCrmNotes) this.crmNotes = JSON.parse(savedCrmNotes);
           else this.crmNotes = defaultCrmNotes;
+
+          // 一次性移除舊版內建範例；只比對固定範例 ID／原始內容，不碰正式資料
+          if (localStorage.getItem('momo_examples_removed_v1') !== '1') {
+            const demoExpenseIds = new Set(['exp_1', 'exp_2', 'exp_3']);
+            const demoInventoryIds = new Set(['inv_1', 'inv_2', 'inv_3', 'inv_4']);
+            const demoCrmNotes = {
+              '怡君': '敏感性頭皮，洗髮時力道要輕，水溫偏好溫涼。\n配方：染髮使用 7-CB 巧克力棕，搭配 6% 雙氧。',
+              '冠宇': '鬢角剪短，偏好日系抓整風格。\n配方：挑染使用漂粉1次，上色 8-MT 薄荷灰。',
+              '美玲': '喜歡喝熱水。注重髮質保養。\n配方：每兩週做一次結構式護髮，居家搭配護髮素。'
+            };
+
+            this.orders = this.orders.filter(order => !String(order.id || '').startsWith('mock_'));
+            this.expenses = this.expenses.filter(expense => !demoExpenseIds.has(String(expense.id || '')));
+            this.inventory = this.inventory.filter(item => !demoInventoryIds.has(String(item.id || '')));
+            Object.entries(demoCrmNotes).forEach(([name, note]) => {
+              if (this.crmNotes[name] === note) delete this.crmNotes[name];
+            });
+
+            this.saveOrders();
+            this.saveExpenses();
+            localStorage.setItem('momo_inventory', JSON.stringify(this.inventory));
+            localStorage.setItem('momo_crmNotes', JSON.stringify(this.crmNotes));
+            localStorage.setItem('momo_examples_removed_v1', '1');
+          }
 
           this.crmFormulas = safeParse(savedCrmFormulas, {});
           this.closeoutRecords = safeParse(savedCloseoutRecords, {});
@@ -4183,7 +4224,8 @@
             const resData = await response.json();
             const orders = resData.orders || (resData.data && resData.data.orders);
             if (resData && Array.isArray(orders)) {
-              const report = this.washAndMergeOrders(orders);
+              const cancelledEventIds = resData.cancelledEventIds || (resData.data && resData.data.cancelledEventIds) || [];
+              const report = this.washAndMergeOrders(orders, cancelledEventIds);
               this.lastSyncTime = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
               localStorage.setItem('momo_last_sync_time', this.lastSyncTime);
               this.syncReport = { ...report, syncedAt: new Date().toISOString(), period: `${this.selectedYear}-${this.selectedMonth}` };
@@ -4199,12 +4241,18 @@
           }
         },
 
-        washAndMergeOrders(rawOrders) {
+        washAndMergeOrders(rawOrders, cancelledEventIds = []) {
           let mergedCount = 0;
-          let duplicateCount = 0;
+          let updatedCount = 0;
+          let unchangedCount = 0;
+          let cancelledCount = 0;
           let skippedCount = 0;
           let warningCount = 0;
-          const existingKeys = new Set(this.orders.map(o => `${o.date}_${o.customerName}_${o.amount}_${o.serviceName}`));
+          const bySourceEventId = new Map(
+            this.orders
+              .filter(order => order.sourceEventId)
+              .map(order => [String(order.sourceEventId), order])
+          );
 
           rawOrders.forEach(raw => {
             // 1. Clean customer name: Regex ^([^\(（\-\s]+)
@@ -4236,17 +4284,32 @@
 
             // Extract amount & date
             const amount = Number(raw.amount) || 0;
+            const cashAmount = Number(raw.cashAmount) || 0;
             const date = raw.date || new Date().toLocaleDateString('sv-SE');
+            const sourceEventId = String(raw.sourceEventId || raw.eventId || '');
+            const orderId = raw.orderId || raw.order_id || null;
 
             if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !customerName.trim() || !serviceName.trim()) {
               skippedCount++;
               return;
             }
-            if (amount <= 0 || !['現金', '儲值扣款', '儲值進帳'].includes(paymentMethod)) warningCount++;
+            if (!sourceEventId) warningCount++;
+            if (amount <= 0 || !['現金', '儲值扣款', '現金＋儲值扣款', '儲值進帳'].includes(paymentMethod)) warningCount++;
+            if (paymentMethod === '現金＋儲值扣款' && (cashAmount <= 0 || cashAmount >= amount)) warningCount++;
 
-            // De-duplication check: date + customerName + amount + serviceName
-            const key = `${date}_${customerName}_${amount}_${serviceName}`;
-            if (!existingKeys.has(key)) {
+            // 舊版後端尚未回傳 Event ID 時，維持原本去重行為，避免部署過渡期產生重複
+            if (!sourceEventId) {
+              const legacyExisting = this.orders.find(order =>
+                this.isOrderActive(order)
+                && order.date === date
+                && order.customerName === customerName
+                && Number(order.amount) === amount
+                && order.serviceName === serviceName
+              );
+              if (legacyExisting) {
+                unchangedCount++;
+                return;
+              }
               this.orders.push({
                 id: 'sync_' + Math.random().toString(36).substr(2, 9),
                 date,
@@ -4254,22 +4317,87 @@
                 gender,
                 serviceName,
                 amount,
-                paymentMethod
+                paymentMethod,
+                cashAmount: paymentMethod === '現金＋儲值扣款' ? cashAmount : null,
+                source: 'google_calendar',
+                sourceEventId: null,
+                orderId,
+                syncStatus: 'active',
+                lastSyncedAt: new Date().toISOString()
               });
-              existingKeys.add(key);
+              mergedCount++;
+              return;
+            }
+
+            // 第一次新版同步：將舊 sync_* 紀錄接上 Google Event ID，避免重複新增
+            let existing = sourceEventId ? bySourceEventId.get(sourceEventId) : null;
+            if (!existing && sourceEventId) {
+              existing = this.orders.find(order =>
+                !order.sourceEventId
+                && String(order.id || '').startsWith('sync_')
+                && order.date === date
+                && order.customerName === customerName
+                && Number(order.amount) === amount
+                && order.serviceName === serviceName
+              );
+            }
+
+            const syncedFields = {
+              date,
+              customerName,
+              gender,
+              serviceName,
+              amount,
+              paymentMethod,
+              cashAmount: paymentMethod === '現金＋儲值扣款' ? cashAmount : null,
+              source: 'google_calendar',
+              sourceEventId: sourceEventId || null,
+              orderId,
+              syncStatus: 'active',
+              lastSyncedAt: new Date().toISOString()
+            };
+
+            if (!existing) {
+              const newOrder = {
+                id: sourceEventId ? `gcal_${sourceEventId}` : 'sync_' + Math.random().toString(36).substr(2, 9),
+                ...syncedFields
+              };
+              this.orders.push(newOrder);
+              if (sourceEventId) bySourceEventId.set(sourceEventId, newOrder);
               mergedCount++;
             } else {
-              duplicateCount++;
+              const changed = ['date', 'customerName', 'gender', 'serviceName', 'amount', 'paymentMethod', 'cashAmount', 'syncStatus']
+                .some(key => existing[key] !== syncedFields[key]);
+              Object.assign(existing, syncedFields);
+              if (sourceEventId) bySourceEventId.set(sourceEventId, existing);
+              changed ? updatedCount++ : unchangedCount++;
+            }
+          });
+
+          const cancelledSet = new Set(cancelledEventIds.map(String));
+          this.orders.forEach(order => {
+            if (order.source === 'google_calendar' && order.sourceEventId && cancelledSet.has(String(order.sourceEventId))) {
+              if (order.syncStatus !== 'cancelled') cancelledCount++;
+              order.syncStatus = 'cancelled';
+              order.lastSyncedAt = new Date().toISOString();
             }
           });
 
           this.saveOrders();
-          if (mergedCount > 0) {
-            this.showToast(`✨ 同步完成！新增 ${mergedCount} 筆去重複業績資料`);
+          if (mergedCount || updatedCount || cancelledCount) {
+            this.showToast(`✨ 同步完成：新增 ${mergedCount}、更新 ${updatedCount}、取消 ${cancelledCount} 筆`);
           } else {
-            this.showToast('✨ 同步完成！本機資料已是最新狀態，無重複資料');
+            this.showToast('✨ 同步完成！行事曆資料沒有變更');
           }
-          return { received: rawOrders.length, merged: mergedCount, duplicates: duplicateCount, skipped: skippedCount, warnings: warningCount };
+          return {
+            received: rawOrders.length,
+            merged: mergedCount,
+            updated: updatedCount,
+            unchanged: unchangedCount,
+            cancelled: cancelledCount,
+            skipped: skippedCount,
+            warnings: warningCount
+          };
         },
 
         // Navigate from dashboard customer rank to CRM profile
@@ -4287,6 +4415,7 @@
           this.newOrder.serviceName = cust.lastService || '';
           this.newOrder.amount = null;
           this.newOrder.paymentMethod = '現金';
+          this.newOrder.cashAmount = null;
           this.showMobileAddOrderForm = true;
           this.activeTab = 'orders';
           this.ordersSearchQuery = cust.name;
@@ -4422,6 +4551,12 @@
 
         // --- Tab 2: Orders CRUD ---
         addOrder() {
+          const totalAmount = Number(this.newOrder.amount) || 0;
+          const cashAmount = Number(this.newOrder.cashAmount) || 0;
+          if (this.newOrder.paymentMethod === '現金＋儲值扣款' && (cashAmount <= 0 || cashAmount >= totalAmount)) {
+            this.showToast('混合付款的現金金額必須大於 0，且小於消費總額', 'error', 5000);
+            return;
+          }
           const id = 'ord_' + Math.random().toString(36).substr(2, 9);
           this.orders.push({
             id,
@@ -4429,8 +4564,9 @@
             customerName: this.newOrder.customerName.trim(),
             gender: this.newOrder.gender,
             serviceName: this.newOrder.serviceName.trim(),
-            amount: Number(this.newOrder.amount) || 0,
-            paymentMethod: this.newOrder.paymentMethod
+            amount: totalAmount,
+            paymentMethod: this.newOrder.paymentMethod,
+            cashAmount: this.newOrder.paymentMethod === '現金＋儲值扣款' ? cashAmount : null
           });
 
           this.saveOrders();
@@ -4440,6 +4576,7 @@
           this.newOrder.customerName = '';
           this.newOrder.serviceName = '';
           this.newOrder.amount = null;
+          this.newOrder.cashAmount = null;
           
           // 新增完成後：手機收起表單，桌機切換到業績明細確認
           this.showMobileAddOrderForm = false;
@@ -4588,7 +4725,7 @@
           event.target.value = '';
         },
         exportCSV() {
-          const headers = ['日期', '顧客姓名', '性別', '服務項目', '服務分類', '金額(NT$)', '付款方式', '預估分鐘', '每小時產值'];
+          const headers = ['日期', '顧客姓名', '性別', '服務項目', '服務分類', '金額(NT$)', '付款方式', '現金金額(NT$)', '儲值扣款(NT$)', '預估分鐘', '每小時產值'];
           const rows = this.filteredOrders.map(o => [
             o.date,
             o.customerName,
@@ -4597,6 +4734,8 @@
             o.category || this.classifyCategory(o.serviceName),
             o.amount,
             o.paymentMethod,
+            o.paymentMethod === '現金＋儲值扣款' ? this.getMixedCashAmount(o) : (o.paymentMethod === '現金' ? Number(o.amount) || 0 : 0),
+            o.paymentMethod === '現金＋儲值扣款' ? this.getMixedPrepaidAmount(o) : (o.paymentMethod === '儲值扣款' ? Number(o.amount) || 0 : 0),
             this.getServiceMinutes(o.serviceName) || '',
             this.getServiceMinutes(o.serviceName) ? Math.round((Number(o.amount) || 0) / (this.getServiceMinutes(o.serviceName) / 60)) : ''
           ]);
@@ -4640,6 +4779,16 @@
         formatNumber(val) {
           return Math.round(Number(val) || 0).toLocaleString();
         },
+        isOrderActive(order) {
+          return !order || order.syncStatus !== 'cancelled';
+        },
+        getMixedCashAmount(order) {
+          const total = Math.max(0, Number(order && order.amount) || 0);
+          return Math.min(total, Math.max(0, Number(order && order.cashAmount) || 0));
+        },
+        getMixedPrepaidAmount(order) {
+          return Math.max(0, (Number(order && order.amount) || 0) - this.getMixedCashAmount(order));
+        },
         getWeekday(dateStr) {
           const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
           const d = new Date(dateStr + 'T00:00:00');
@@ -4651,6 +4800,7 @@
             case '轉帳': return '🏦';
             case 'LinePay': return '🟢';
             case '儲值扣款': return '➖';
+            case '現金＋儲值扣款': return '💵➖';
             case '儲值進帳': return '➕';
             default: return '💰';
           }
@@ -4659,6 +4809,7 @@
           switch (method) {
             case '現金': return 'bg-emerald-50 text-emerald-700';
             case '儲值扣款': return 'bg-sky-50 text-sky-700';
+            case '現金＋儲值扣款': return 'bg-amber-50 text-amber-700';
             case '儲值進帳': return 'bg-purple-50 text-purple-700';
             default: return 'bg-slate-50 text-slate-600';
           }
