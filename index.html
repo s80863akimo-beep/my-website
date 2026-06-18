@@ -1595,12 +1595,40 @@
 
         <!-- Tab 3: Expenses -->
         <div v-else-if="activeTab === 'expenses'" key="expenses" class="space-y-6">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <!-- 當期支出摘要 -->
+          <section class="bg-white rounded-3xl sm:rounded-4xl border border-orange-50 macaron-shadow overflow-hidden">
+            <div class="px-5 py-3 border-b border-orange-50">
+              <h3 class="font-black text-slate-700 text-sm">🧾 {{ selectedYear }} 年 {{ selectedMonth === 'All' ? '全年度' : selectedMonth + ' 月' }} 支出摘要</h3>
+            </div>
+            <div class="grid grid-cols-3 divide-x divide-orange-50">
+              <div class="px-3 sm:px-5 py-4 min-w-0">
+                <div class="text-[10px] font-black text-slate-400">當期支出</div>
+                <div class="mt-1 text-base sm:text-xl font-black text-rose-500 whitespace-nowrap">NT$ {{ formatNumber(expensesSummary.total) }}</div>
+              </div>
+              <div class="px-3 sm:px-5 py-4 min-w-0">
+                <div class="text-[10px] font-black text-slate-400">支出筆數</div>
+                <div class="mt-1 text-base sm:text-xl font-black text-slate-800">{{ expensesSummary.count }} <span class="text-xs text-slate-400">筆</span></div>
+              </div>
+              <div class="px-3 sm:px-5 py-4 min-w-0">
+                <div class="text-[10px] font-black text-slate-400">最高分類</div>
+                <div class="mt-1 text-sm sm:text-lg font-black text-slate-800 truncate">{{ expensesSummary.topCategory }}</div>
+                <div class="text-[9px] font-bold text-slate-400">NT$ {{ formatNumber(expensesSummary.topCategoryAmount) }}</div>
+              </div>
+            </div>
+          </section>
+
+          <div>
             
             <!-- Add Expense Form -->
-            <div class="bg-white p-6 rounded-4xl border border-orange-50 macaron-shadow space-y-4">
+            <transition name="fade">
+            <div v-if="showExpenseForm"
+                 class="fixed inset-0 z-[55] flex items-end lg:items-center justify-center bg-slate-900/40 lg:p-6"
+                 @click="showExpenseForm = false">
+            <div class="bg-white w-full max-w-xl max-h-[90dvh] overflow-y-auto p-5 sm:p-6 rounded-t-3xl lg:rounded-4xl border border-orange-50 macaron-shadow-lg space-y-4 safe-pb"
+                 @click.stop>
               <h3 class="font-black text-slate-800 text-lg flex items-center justify-between">
                 <span class="flex items-center gap-2"><span>💸</span> 新增支出紀錄</span>
+                <button type="button" @click="showExpenseForm = false" class="w-9 h-9 rounded-full bg-slate-50 text-slate-400 font-black" aria-label="關閉新增支出">✕</button>
               </h3>
 
               <!-- 一鍵匯入薪水 -->
@@ -1658,80 +1686,119 @@
                 </button>
               </form>
             </div>
+            </div>
+            </transition>
 
             <!-- Expenses Table -->
-            <div class="bg-white p-6 rounded-4xl border border-orange-50 macaron-shadow lg:col-span-2 space-y-4">
-              <div class="flex items-center justify-between pb-2 border-b border-orange-50">
+            <div class="bg-white p-4 sm:p-6 rounded-3xl sm:rounded-4xl border border-orange-50 macaron-shadow space-y-4">
+              <div class="space-y-3 pb-4 border-b border-orange-50">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
                   <span>📋</span> 支出明細清單
                 </h3>
-                <span class="text-xs bg-rose-50 text-rose-500 font-black px-2.5 py-1 rounded-full">
-                  本期共 NT$ {{ formatNumber(totalExpenses) }}
-                </span>
-              </div>
-
-              <!-- Category Breakdown Cards -->
-              <div v-if="filteredExpenses.length > 0" class="grid grid-cols-2 sm:grid-cols-5 gap-3 p-1">
-                <div v-for="(amount, cat) in expenseBreakdown" :key="cat" 
-                     class="bg-orange-50/40 p-3 rounded-2xl border border-orange-100/30 flex flex-col justify-between hover:bg-orange-50/70 transition-all hover-lift">
-                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ cat }}</span>
-                  <span class="text-xs font-black text-slate-700 mt-1">NT$ {{ formatNumber(amount) }}</span>
+                  <div class="flex items-center gap-2">
+                    <div class="relative flex-1 sm:w-56">
+                      <input type="text" v-model="expenseSearchQuery" placeholder="搜尋備註或分類..."
+                             class="w-full min-h-[42px] bg-orange-50/50 border border-orange-100 rounded-2xl pl-9 pr-9 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-macaron-peach-200">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs">🔍</span>
+                      <button v-if="expenseSearchQuery" @click="expenseSearchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-black">✕</button>
+                    </div>
+                    <button @click="showExpenseForm = true" class="jelly-btn min-h-[42px] shrink-0 px-4 rounded-2xl bg-gradient-to-r from-macaron-peach-400 to-macaron-rose text-white text-xs font-black shadow-sm">＋ 新增支出</button>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <select v-model="expenseFilterCategory" class="min-h-[38px] flex-1 sm:flex-none bg-white border border-orange-100 rounded-xl px-3 text-xs font-bold text-slate-700">
+                    <option value="All">全部分類</option>
+                    <option v-for="cat in expenseCategories" :key="cat" :value="cat">{{ cat }}</option>
+                  </select>
+                  <button v-if="expenseFilterActive" @click="expenseSearchQuery = ''; expenseFilterCategory = 'All'" class="min-h-[38px] px-3 rounded-xl bg-rose-50 border border-rose-100 text-rose-500 text-[10px] font-black">清除</button>
+                  <div class="ml-auto text-right text-[11px] font-bold">
+                    <span class="text-slate-400">{{ filteredExpenses.length }} 筆</span>
+                    <span v-if="expenseFilterActive" class="ml-1 text-rose-500 font-black">· 小計 NT$ {{ formatNumber(filteredExpensesTotal) }}</span>
+                  </div>
                 </div>
               </div>
 
-              <!-- Responsive Table -->
-              <div class="overflow-x-auto rounded-3xl border border-orange-100/50">
-                <table class="w-full min-w-[600px] border-collapse text-left">
-                  <thead>
-                    <tr class="bg-orange-50/50 text-slate-500 text-xs font-black border-b border-orange-100">
-                      <th class="py-3 px-4 w-[140px]">日期</th>
-                      <th class="py-3 px-4 w-[130px]">分類</th>
-                      <th class="py-3 px-4">備註說明</th>
-                      <th class="py-3 px-4 w-[130px]">金額 (NT$)</th>
-                      <th class="py-3 px-4 w-[60px] text-center">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-orange-50 text-sm font-semibold text-slate-700">
-                    <tr v-if="filteredExpenses.length === 0">
-                      <td colspan="5" class="text-center py-16 text-slate-400 font-medium bg-orange-50/10">
-                        <div class="flex flex-col items-center justify-center gap-2 select-none">
-                          <span class="text-3xl animate-bounce-slow">🍀</span>
-                          <span class="text-sm font-bold text-slate-400">本期沒有任何支出明細</span>
-                          <span class="text-xs text-slate-300">可以使用左側表單登記進貨材料費、水電房租等支出</span>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr v-for="expense in filteredExpenses" :key="expense.id" class="hover:bg-orange-50/20 transition-colors">
-                      <td class="py-2.5 px-3">
-                        <input type="date" v-model="expense.date" @change="saveExpenses"
-                               class="w-full bg-transparent border-0 focus:bg-white focus:ring-1 focus:ring-macaron-peach-300 rounded px-1.5 py-1 text-xs font-bold text-slate-600">
-                      </td>
-                      <td class="py-2.5 px-3">
-                        <select v-model="expense.category" @change="saveExpenses"
-                                class="w-full bg-transparent border-0 focus:bg-white focus:ring-1 focus:ring-macaron-peach-300 rounded px-1 py-1 text-xs font-bold text-slate-700">
-                          <option v-for="cat in expenseCategories" :key="cat" :value="cat">{{ cat }}</option>
-                        </select>
-                      </td>
-                      <td class="py-2.5 px-4">
-                        <input type="text" v-model="expense.notes" @change="saveExpenses"
-                               class="w-full bg-transparent border-0 focus:bg-white focus:ring-1 focus:ring-macaron-peach-300 rounded px-1.5 py-1 text-sm text-slate-600">
-                      </td>
-                      <td class="py-2.5 px-3">
-                        <input type="number" v-model.number="expense.amount" @change="saveExpenses"
-                               class="w-full bg-transparent border-0 focus:bg-white focus:ring-1 focus:ring-macaron-peach-300 rounded px-1.5 py-1 text-sm font-black text-slate-800 text-right">
-                      </td>
-                      <td class="py-2.5 px-4 text-center">
-                        <button @click="deleteExpense(expense.id)" 
-                                class="text-rose-400 hover:text-rose-600 p-1.5 rounded-full hover:bg-rose-50 transition-colors"
-                                title="刪除">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"></path>
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <!-- Category Breakdown Cards -->
+              <div v-if="periodExpenses.length > 0" class="flex gap-2 overflow-x-auto pb-1">
+                <button v-for="(amount, cat) in expenseBreakdown" v-show="amount > 0" :key="cat"
+                     @click="expenseFilterCategory = expenseFilterCategory === cat ? 'All' : cat"
+                     :class="expenseFilterCategory === cat ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-orange-50/40 border-orange-100/30 text-slate-700'"
+                     class="shrink-0 min-w-[108px] text-left p-3 rounded-2xl border transition-all jelly-btn">
+                  <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ cat }}</span>
+                  <span class="block text-xs font-black mt-1">NT$ {{ formatNumber(amount) }}</span>
+                </button>
+              </div>
+
+              <div v-if="filteredExpenses.length === 0" class="py-14 text-center rounded-3xl bg-orange-50/20">
+                <div class="text-3xl">🍀</div>
+                <div class="mt-2 text-sm font-black text-slate-500">{{ expenseFilterActive ? '找不到符合條件的支出' : '本期沒有支出明細' }}</div>
+                <div class="mt-1 text-xs font-semibold text-slate-300">{{ expenseFilterActive ? '請清除篩選或更換搜尋內容' : '點擊「新增支出」開始記帳' }}</div>
+              </div>
+
+              <div v-for="group in groupedExpenses" :key="group.date" class="space-y-2">
+                <button type="button" @click="toggleExpenseDate(group.date)"
+                        class="w-full flex items-center justify-between rounded-2xl px-3 sm:px-4 py-3 bg-rose-50/40 border border-rose-100/60 text-left">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-400 transition-transform" :class="{ '-rotate-90': collapsedExpenseDates[group.date] }" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    <span class="text-sm font-black text-slate-700">{{ group.date }}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" :class="group.weekday === '週六' || group.weekday === '週日' ? 'bg-rose-100 text-rose-600' : 'bg-sky-50 text-sky-700'">{{ group.weekday }}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-400">{{ group.expenses.length }} 筆</span>
+                    <span class="text-sm font-black text-rose-500">NT$ {{ formatNumber(group.dayTotal) }}</span>
+                  </div>
+                </button>
+
+                <!-- Desktop table -->
+                <div v-show="!collapsedExpenseDates[group.date]" class="hidden lg:block overflow-hidden rounded-2xl border border-orange-100/50">
+                  <table class="w-full border-collapse text-left">
+                    <thead><tr class="bg-orange-50/40 text-[10px] font-black text-slate-400"><th class="px-4 py-2 w-[140px]">分類</th><th class="px-4 py-2">備註</th><th class="px-4 py-2 w-[150px] text-right">金額</th><th class="w-12"></th></tr></thead>
+                    <tbody class="divide-y divide-orange-50">
+                      <template v-for="expense in group.expenses" :key="expense.id">
+                        <tr @click="toggleExpenseEditor(expense.id)" class="cursor-pointer hover:bg-orange-50/30">
+                          <td class="px-4 py-3"><span class="text-xs font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-lg">{{ expense.category }}</span></td>
+                          <td class="px-4 py-3 text-sm font-semibold text-slate-600">{{ expense.notes || '未填備註' }}</td>
+                          <td class="px-4 py-3 text-right text-sm font-black text-slate-800">NT$ {{ formatNumber(expense.amount) }}</td>
+                          <td class="px-3 text-slate-300"><svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': expandedExpenseId === expense.id }" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></td>
+                        </tr>
+                        <tr v-if="expandedExpenseId === expense.id" class="bg-orange-50/30">
+                          <td colspan="4" class="p-4">
+                            <div class="grid grid-cols-6 gap-3 items-end">
+                              <label class="col-span-2 text-[10px] font-black text-slate-400">日期<input type="date" v-model="expense.date" @change="saveExpenses" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold"></label>
+                              <label class="col-span-2 text-[10px] font-black text-slate-400">分類<select v-model="expense.category" @change="saveExpenses" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold"><option v-for="cat in expenseCategories" :key="cat" :value="cat">{{ cat }}</option></select></label>
+                              <label class="col-span-2 text-[10px] font-black text-slate-400">金額<input type="number" v-model.number="expense.amount" @change="saveExpenses" min="0" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-black text-right"></label>
+                              <label class="col-span-5 text-[10px] font-black text-slate-400">備註<input type="text" v-model="expense.notes" @change="saveExpenses" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-semibold"></label>
+                              <button @click.stop="deleteExpense(expense.id)" class="min-h-[40px] rounded-xl bg-rose-50 border border-rose-100 text-rose-500 text-xs font-black">刪除</button>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Mobile cards -->
+                <div v-show="!collapsedExpenseDates[group.date]" class="lg:hidden space-y-2">
+                  <div v-for="expense in group.expenses" :key="expense.id" class="rounded-2xl border border-orange-100/60 bg-white overflow-hidden">
+                    <button type="button" @click="toggleExpenseEditor(expense.id)" class="w-full p-3.5 flex items-center justify-between gap-3 text-left">
+                      <div class="min-w-0">
+                        <span class="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-lg">{{ expense.category }}</span>
+                        <div class="mt-2 text-xs font-semibold text-slate-500 truncate">{{ expense.notes || '未填備註' }}</div>
+                      </div>
+                      <div class="shrink-0 text-sm font-black text-slate-800">NT$ {{ formatNumber(expense.amount) }}</div>
+                    </button>
+                    <div v-if="expandedExpenseId === expense.id" class="p-3.5 pt-0 border-t border-orange-50 bg-orange-50/25 space-y-3">
+                      <div class="grid grid-cols-2 gap-2 pt-3">
+                        <label class="text-[10px] font-black text-slate-400">日期<input type="date" v-model="expense.date" @change="saveExpenses" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-xs font-bold"></label>
+                        <label class="text-[10px] font-black text-slate-400">分類<select v-model="expense.category" @change="saveExpenses" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-2 py-2.5 text-xs font-bold"><option v-for="cat in expenseCategories" :key="cat" :value="cat">{{ cat }}</option></select></label>
+                      </div>
+                      <label class="block text-[10px] font-black text-slate-400">備註<input type="text" v-model="expense.notes" @change="saveExpenses" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-semibold"></label>
+                      <label class="block text-[10px] font-black text-slate-400">金額<input type="number" inputmode="decimal" v-model.number="expense.amount" @change="saveExpenses" min="0" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-black text-right"></label>
+                      <button @click="deleteExpense(expense.id)" class="w-full min-h-[42px] rounded-xl bg-rose-50 border border-rose-100 text-rose-500 text-xs font-black">刪除此筆支出</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2903,6 +2970,11 @@
           showMobileAddOrderForm: false,
           expandedOrderId: null,
           collapsedOrderDates: {},
+          showExpenseForm: false,
+          expandedExpenseId: null,
+          collapsedExpenseDates: {},
+          expenseSearchQuery: '',
+          expenseFilterCategory: 'All',
           showCloseoutSheet: false,
           mobileDashboardSubTab: 'payment',
           
@@ -3037,14 +3109,55 @@
           });
           return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
         },
-        // Filtered Expenses
-        filteredExpenses() {
+        // 當期全部支出（不受支出頁搜尋與分類篩選影響）
+        periodExpenses() {
           return this.expenses.filter(e => {
             const [y, m] = e.date.split('-');
             const yearMatch = y === this.selectedYear;
             const monthMatch = this.selectedMonth === 'All' || m === this.selectedMonth;
             return yearMatch && monthMatch;
           }).sort((a, b) => b.date.localeCompare(a.date));
+        },
+        filteredExpenses() {
+          const query = this.expenseSearchQuery.trim().toLowerCase();
+          return this.periodExpenses.filter(expense => {
+            const categoryMatch = this.expenseFilterCategory === 'All' || expense.category === this.expenseFilterCategory;
+            const searchMatch = !query
+              || String(expense.notes || '').toLowerCase().includes(query)
+              || String(expense.category || '').toLowerCase().includes(query);
+            return categoryMatch && searchMatch;
+          });
+        },
+        expenseFilterActive() {
+          return Boolean(this.expenseSearchQuery || this.expenseFilterCategory !== 'All');
+        },
+        filteredExpensesTotal() {
+          return this.filteredExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+        },
+        groupedExpenses() {
+          const groups = {};
+          this.filteredExpenses.forEach(expense => {
+            if (!groups[expense.date]) {
+              groups[expense.date] = {
+                date: expense.date,
+                weekday: this.getWeekday(expense.date),
+                expenses: [],
+                dayTotal: 0
+              };
+            }
+            groups[expense.date].expenses.push(expense);
+            groups[expense.date].dayTotal += Number(expense.amount) || 0;
+          });
+          return Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
+        },
+        expensesSummary() {
+          const total = this.periodExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+          const categoryTotals = {};
+          this.periodExpenses.forEach(expense => {
+            categoryTotals[expense.category] = (categoryTotals[expense.category] || 0) + (Number(expense.amount) || 0);
+          });
+          const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
+          return { total, count: this.periodExpenses.length, topCategory: topCategory[0], topCategoryAmount: topCategory[1] };
         },
 
         // Today's Stats
@@ -3123,7 +3236,7 @@
           const ordersCount = serviceOrders.length;
           const aov = ordersCount > 0 ? Math.round(revenue / ordersCount) : 0;
           const momoSalary = Math.round(revenue * 0.45);
-          const totalExp = this.filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+          const totalExp = this.periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
           const netProfit = revenue - totalExp;
 
           return { revenue, ordersCount, aov, momoSalary, netProfit };
@@ -3284,7 +3397,7 @@
 
         // Expenses Total
         totalExpenses() {
-          return this.filteredExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+          return this.periodExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
         },
 
         // Top 4 Customers in Filtered Period（排除儲值進帳）
@@ -3768,7 +3881,7 @@
           this.expenseCategories.forEach(cat => {
             breakdown[cat] = 0;
           });
-          this.filteredExpenses.forEach(e => {
+          this.periodExpenses.forEach(e => {
             const cat = e.category;
             if (breakdown[cat] !== undefined) {
               breakdown[cat] += (Number(e.amount) || 0);
@@ -4536,6 +4649,7 @@
               notes: `MOMO薪水 ${year}年${parseInt(month)}月（營業額 NT$${revenue.toLocaleString()} × 45%）`
             });
             this.saveExpenses();
+            this.showExpenseForm = false;
             this.showToast(`👑 薪水 NT$ ${salary.toLocaleString()} 已寫入 ${parseInt(month)} 月支出！`);
           };
 
@@ -4617,13 +4731,24 @@
           // Reset inputs except date
           this.newExpense.notes = '';
           this.newExpense.amount = null;
+          this.showExpenseForm = false;
         },
         deleteExpense(id) {
           this.showConfirm('確定要刪除這筆支出嗎？', () => {
             this.expenses = this.expenses.filter(e => e.id !== id);
+            if (this.expandedExpenseId === id) this.expandedExpenseId = null;
             this.saveExpenses();
             this.showToast('🍧 支出已刪除');
           });
+        },
+        toggleExpenseDate(date) {
+          this.collapsedExpenseDates = {
+            ...this.collapsedExpenseDates,
+            [date]: !this.collapsedExpenseDates[date]
+          };
+        },
+        toggleExpenseEditor(id) {
+          this.expandedExpenseId = this.expandedExpenseId === id ? null : id;
         },
 
         // --- Tab 4: Inventory CRUD ---
