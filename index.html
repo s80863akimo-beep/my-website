@@ -1880,12 +1880,36 @@
 
         <!-- Tab 4: Inventory -->
         <div v-else-if="activeTab === 'inventory'" key="inventory" class="space-y-6">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <section class="bg-white rounded-3xl sm:rounded-4xl border border-orange-50 macaron-shadow overflow-hidden">
+            <div class="px-5 py-3 border-b border-orange-50">
+              <h3 class="font-black text-slate-700 text-sm">📦 庫存狀態摘要</h3>
+            </div>
+            <div class="grid grid-cols-3 divide-x divide-orange-50">
+              <div class="px-3 sm:px-5 py-4">
+                <div class="text-[10px] font-black text-slate-400">商品品項</div>
+                <div class="mt-1 text-base sm:text-xl font-black text-slate-800">{{ inventorySummary.items }} <span class="text-xs text-slate-400">項</span></div>
+              </div>
+              <div class="px-3 sm:px-5 py-4">
+                <div class="text-[10px] font-black text-slate-400">庫存總量</div>
+                <div class="mt-1 text-base sm:text-xl font-black text-sky-700">{{ inventorySummary.units }} <span class="text-xs text-slate-400">件</span></div>
+              </div>
+              <div class="px-3 sm:px-5 py-4">
+                <div class="text-[10px] font-black text-slate-400">需要補貨</div>
+                <div class="mt-1 text-base sm:text-xl font-black" :class="inventorySummary.low + inventorySummary.out ? 'text-rose-600' : 'text-emerald-600'">{{ inventorySummary.low + inventorySummary.out }} <span class="text-xs text-slate-400">項</span></div>
+                <div v-if="inventorySummary.out" class="text-[9px] font-bold text-rose-400">其中 {{ inventorySummary.out }} 項缺貨</div>
+              </div>
+            </div>
+          </section>
+
+          <div>
             
             <!-- Add Item Form -->
-            <div class="bg-white p-6 rounded-4xl border border-orange-50 macaron-shadow space-y-4">
-              <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                <span>📦</span> 新增庫存商品
+            <transition name="fade">
+            <div v-if="showInventoryForm" class="fixed inset-0 z-[55] flex items-end lg:items-center justify-center bg-slate-900/40 lg:p-6" @click="showInventoryForm = false">
+            <div class="bg-white w-full max-w-xl max-h-[90dvh] overflow-y-auto p-5 sm:p-6 rounded-t-3xl lg:rounded-4xl border border-orange-50 macaron-shadow-lg space-y-4 safe-pb" @click.stop>
+              <h3 class="font-black text-slate-800 text-lg flex items-center justify-between">
+                <span class="flex items-center gap-2"><span>📦</span> 新增庫存商品</span>
+                <button type="button" @click="showInventoryForm = false" class="w-9 h-9 rounded-full bg-slate-50 text-slate-400 font-black" aria-label="關閉新增庫存">✕</button>
               </h3>
               <form @submit.prevent="addInventoryItem" class="space-y-4">
                 <div>
@@ -1911,20 +1935,35 @@
                 </button>
               </form>
             </div>
+            </div>
+            </transition>
 
             <!-- Inventory Table -->
-            <div class="bg-white p-6 rounded-4xl border border-orange-50 macaron-shadow lg:col-span-2 space-y-4">
-              <div class="flex items-center justify-between pb-2 border-b border-orange-50">
+            <div class="bg-white p-4 sm:p-6 rounded-3xl sm:rounded-4xl border border-orange-50 macaron-shadow space-y-4">
+              <div class="space-y-3 pb-4 border-b border-orange-50">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
-                  <span>🏪</span> 庫存商品管理清單
+                  <span>🏪</span> 庫存商品
                 </h3>
-                <span class="text-xs bg-amber-50 text-amber-600 font-black px-2.5 py-1 rounded-full">
-                  共 {{ inventory.length }} 個品項
-                </span>
+                  <div class="flex items-center gap-2">
+                    <div class="relative flex-1 sm:w-56">
+                      <input type="text" v-model="inventorySearchQuery" placeholder="搜尋商品或備註..."
+                             class="w-full min-h-[42px] bg-orange-50/50 border border-orange-100 rounded-2xl pl-9 pr-9 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-macaron-peach-200">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs">🔍</span>
+                      <button v-if="inventorySearchQuery" @click="inventorySearchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-black">✕</button>
+                    </div>
+                    <button @click="showInventoryForm = true" class="jelly-btn min-h-[42px] shrink-0 px-4 rounded-2xl bg-gradient-to-r from-macaron-peach-400 to-macaron-rose text-white text-xs font-black shadow-sm">＋ 新增商品</button>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <button @click="inventoryFilterMode = 'all'" :class="inventoryFilterMode === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'" class="min-h-[38px] rounded-xl border text-[11px] font-black">全部 {{ inventory.length }}</button>
+                  <button @click="inventoryFilterMode = 'low'" :class="inventoryFilterMode === 'low' ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-700 border-amber-100'" class="min-h-[38px] rounded-xl border text-[11px] font-black">低庫存 {{ inventorySummary.low }}</button>
+                  <button @click="inventoryFilterMode = 'out'" :class="inventoryFilterMode === 'out' ? 'bg-rose-500 text-white border-rose-500' : 'bg-rose-50 text-rose-600 border-rose-100'" class="min-h-[38px] rounded-xl border text-[11px] font-black">缺貨 {{ inventorySummary.out }}</button>
+                </div>
               </div>
 
               <!-- Responsive Table -->
-              <div class="overflow-x-auto rounded-3xl border border-orange-100/50">
+              <div class="hidden lg:block overflow-x-auto rounded-3xl border border-orange-100/50">
                 <table class="w-full min-w-[550px] border-collapse text-left">
                   <thead>
                     <tr class="bg-orange-50/50 text-slate-500 text-xs font-black border-b border-orange-100">
@@ -1935,18 +1974,18 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-orange-50 text-sm font-semibold text-slate-700">
-                    <tr v-if="inventory.length === 0">
+                    <tr v-if="filteredInventory.length === 0">
                       <td colspan="4" class="text-center py-16 text-slate-400 font-medium bg-orange-50/10">
                         <div class="flex flex-col items-center justify-center gap-2 select-none">
                           <span class="text-3xl animate-bounce-slow">🏪</span>
-                          <span class="text-sm font-bold text-slate-400">目前庫存內沒有任何商品</span>
-                          <span class="text-xs text-slate-300">使用左側表單建立商品庫存後，可啟用低庫存自動提醒</span>
+                          <span class="text-sm font-bold text-slate-400">{{ inventory.length ? '找不到符合條件的商品' : '目前庫存內沒有任何商品' }}</span>
+                          <span class="text-xs text-slate-300">{{ inventory.length ? '請更換搜尋內容或篩選狀態' : '點擊「新增商品」建立第一筆庫存' }}</span>
                         </div>
                       </td>
                     </tr>
-                    <tr v-for="item in inventory" :key="item.id" 
+                    <tr v-for="item in filteredInventory" :key="item.id" 
                         class="hover:bg-orange-50/20 transition-colors"
-                        :class="{'bg-red-50/40 hover:bg-red-50/60': item.stock < 3}">
+                        :class="{'bg-red-50/40 hover:bg-red-50/60': item.stock === 0, 'bg-amber-50/30 hover:bg-amber-50/50': item.stock > 0 && item.stock < 3}">
                       
                       <!-- Name -->
                       <td class="py-3 px-4">
@@ -1961,7 +2000,7 @@
                                   class="w-7 h-7 rounded-full bg-white border border-macaron-peach-200 text-slate-700 font-black flex items-center justify-center hover:bg-macaron-peach-50 active:scale-90 shadow-sm jelly-btn">
                             -
                           </button>
-                          <input type="number" v-model.number="item.stock" @change="saveInventory"
+                          <input type="number" min="0" v-model.number="item.stock" @change="item.stock = Math.max(0, Number(item.stock) || 0); saveInventory()"
                                  class="w-16 text-center bg-transparent border-0 focus:bg-white focus:ring-1 focus:ring-macaron-peach-300 rounded px-1 py-1 text-sm font-black text-slate-800"
                                  :class="item.stock < 3 ? 'text-rose-600 font-extrabold' : 'text-slate-800'">
                           <button @click="adjustStock(item, 1)" 
@@ -1995,231 +2034,234 @@
                   </tbody>
                 </table>
               </div>
+
+              <!-- Mobile inventory cards -->
+              <div class="lg:hidden">
+                <div v-if="filteredInventory.length === 0" class="py-14 text-center rounded-3xl bg-orange-50/20">
+                  <div class="text-3xl">🏪</div>
+                  <div class="mt-2 text-sm font-black text-slate-500">{{ inventory.length ? '找不到符合條件的商品' : '目前沒有庫存商品' }}</div>
+                  <div class="mt-1 text-xs font-semibold text-slate-300">{{ inventory.length ? '請更換搜尋內容或篩選狀態' : '點擊「新增商品」開始管理庫存' }}</div>
+                </div>
+
+                <div v-else class="space-y-2">
+                  <div v-for="item in filteredInventory" :key="item.id"
+                       class="rounded-2xl border overflow-hidden"
+                       :class="item.stock === 0 ? 'border-rose-200 bg-rose-50/20' : item.stock < 3 ? 'border-amber-200 bg-amber-50/20' : 'border-orange-100 bg-white'">
+                    <button type="button" @click="toggleInventoryEditor(item.id)" class="w-full p-3.5 pb-2 flex items-start justify-between gap-3 text-left">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-full shrink-0" :class="getInventoryStatus(item).dot"></span>
+                          <span class="text-sm font-black text-slate-800 truncate">{{ item.name }}</span>
+                        </div>
+                        <div class="mt-1.5 text-xs font-semibold text-slate-400 truncate">{{ item.notes || '未填備註' }}</div>
+                      </div>
+                      <span class="shrink-0 text-[10px] font-black px-2 py-1 rounded-lg" :class="getInventoryStatus(item).badge">{{ getInventoryStatus(item).label }}</span>
+                    </button>
+
+                    <div class="px-3.5 pb-3 flex items-center justify-between">
+                      <span class="text-[10px] font-black text-slate-400">目前數量</span>
+                      <div class="flex items-center gap-2">
+                        <button @click="adjustStock(item, -1)" :disabled="item.stock <= 0" class="w-10 h-10 rounded-xl bg-white border border-orange-100 text-slate-600 text-lg font-black shadow-sm disabled:opacity-35 jelly-btn" :aria-label="`${item.name} 庫存減一`">−</button>
+                        <span class="w-12 text-center text-xl font-black" :class="item.stock === 0 ? 'text-rose-600' : item.stock < 3 ? 'text-amber-600' : 'text-slate-800'">{{ item.stock }}</span>
+                        <button @click="adjustStock(item, 1)" class="w-10 h-10 rounded-xl bg-slate-800 text-white text-lg font-black shadow-sm jelly-btn" :aria-label="`${item.name} 庫存加一`">＋</button>
+                      </div>
+                    </div>
+
+                    <div v-if="expandedInventoryId === item.id" class="p-3.5 border-t border-orange-100/60 bg-white/80 space-y-3">
+                      <label class="block text-[10px] font-black text-slate-400">商品名稱<input type="text" v-model="item.name" @change="saveInventory" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-bold"></label>
+                      <div class="grid grid-cols-[1fr_110px] gap-2">
+                        <label class="block text-[10px] font-black text-slate-400">商品備註<input type="text" v-model="item.notes" @change="saveInventory" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-semibold"></label>
+                        <label class="block text-[10px] font-black text-slate-400">庫存數量<input type="number" inputmode="numeric" min="0" v-model.number="item.stock" @change="item.stock = Math.max(0, Number(item.stock) || 0); saveInventory()" class="mt-1 w-full bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-black text-center"></label>
+                      </div>
+                      <button @click="deleteInventoryItem(item.id)" class="w-full min-h-[42px] rounded-xl bg-rose-50 border border-rose-100 text-rose-500 text-xs font-black">刪除此商品</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>
         </div>
 
-        <!-- Tab 5: CRM (顧客整理) -->
-        <div v-else-if="activeTab === 'crm'" key="crm" class="space-y-6">
-          
-          <!-- CRM Command Center -->
-          <section class="bg-white rounded-4xl border border-orange-50 macaron-shadow overflow-hidden">
-            <div class="p-5 sm:p-6 bg-gradient-to-r from-white to-orange-50/40 border-b border-orange-100/40 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <h3 class="font-black text-slate-800 text-lg sm:text-xl flex items-center gap-2">
-                  <span>👥</span> 顧客整理檔案室
-                </h3>
-                <p class="text-xs text-slate-400 font-semibold mt-1">自動聚合消費、儲值金、回訪狀態與美髮配方，手機上也能快速查客史</p>
+        <!-- Tab 5: CRM 與儲值帳本 -->
+        <div v-else-if="activeTab === 'crm'" key="crm" class="space-y-4 sm:space-y-6">
+          <section class="bg-white rounded-3xl sm:rounded-4xl border border-orange-50 macaron-shadow overflow-hidden">
+            <div class="p-4 sm:p-6 bg-gradient-to-r from-white to-orange-50/40 border-b border-orange-100/40">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="font-black text-slate-800 text-lg sm:text-xl">顧客與儲值帳本</h3>
+                  <p class="text-[11px] sm:text-xs text-slate-400 font-semibold mt-1">客史、配方與每筆儲值異動集中管理</p>
+                </div>
+                <button @click="exportCrmCSV" class="min-h-[40px] px-3 rounded-xl bg-white border border-orange-100 text-[11px] font-black text-slate-500 shrink-0">匯出 CRM</button>
               </div>
-
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto lg:min-w-[520px]">
-                <div class="rounded-2xl bg-orange-50/60 border border-orange-100/60 px-3 py-2.5">
-                  <div class="text-[10px] font-black text-slate-400">顧客數</div>
+              <div class="grid grid-cols-3 gap-2 mt-4">
+                <div class="rounded-2xl bg-orange-50/70 px-3 py-3">
+                  <div class="text-[9px] font-black text-slate-400">顧客</div>
                   <div class="text-lg font-black text-slate-800">{{ crmStats.totalCustomers }}</div>
                 </div>
-                <div class="rounded-2xl bg-rose-50/60 border border-rose-100 px-3 py-2.5">
-                  <div class="text-[10px] font-black text-slate-400">回訪提醒</div>
+                <div class="rounded-2xl bg-rose-50/70 px-3 py-3">
+                  <div class="text-[9px] font-black text-slate-400">待回訪</div>
                   <div class="text-lg font-black text-rose-600">{{ crmStats.followupCustomers }}</div>
                 </div>
-                <div class="rounded-2xl bg-emerald-50/60 border border-emerald-100 px-3 py-2.5">
-                  <div class="text-[10px] font-black text-slate-400">儲值餘額</div>
-                  <div class="text-lg font-black text-emerald-700">NT$ {{ formatNumber(crmStats.prepaidLiability) }}</div>
-                </div>
-                <div class="rounded-2xl bg-sky-50/60 border border-sky-100 px-3 py-2.5">
-                  <div class="text-[10px] font-black text-slate-400">配方完成</div>
-                  <div class="text-lg font-black text-slate-800">{{ crmStats.formulaCount }}/{{ crmStats.totalCustomers }}</div>
+                <div class="rounded-2xl bg-emerald-50/70 px-3 py-3">
+                  <div class="text-[9px] font-black text-slate-400">儲值餘額</div>
+                  <div class="text-sm sm:text-lg font-black text-emerald-700">NT$ {{ formatNumber(crmStats.prepaidLiability) }}</div>
                 </div>
               </div>
             </div>
-
-            <div class="p-4 sm:p-5 space-y-3">
-              <div class="flex flex-col lg:flex-row gap-3">
-                <div class="relative flex-1">
-                  <input type="text" v-model="crmSearchQuery" placeholder="搜尋顧客、服務或配方關鍵字..."
-                         class="w-full jelly-input bg-orange-50/30 border border-orange-100 rounded-full px-5 py-3 pl-11 pr-10 text-sm font-semibold text-slate-700">
-                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base">🔍</span>
-                  <button v-if="crmSearchQuery" @click="crmSearchQuery = ''" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-black text-sm select-none">
-                    ✕
-                  </button>
-                </div>
-
-                <select v-model="crmSortMode"
-                        class="jelly-input bg-white border border-orange-100 rounded-full px-4 py-3 text-sm font-black text-slate-700 lg:w-48">
-                  <option value="lastDate">最近來訪優先</option>
-                  <option value="totalSpent">累計消費最高</option>
-                  <option value="prepaidLow">儲值餘額最低</option>
-                  <option value="visits">來訪次數最多</option>
-                  <option value="name">姓名排序</option>
-                </select>
-              </div>
-
-              <div class="flex gap-2 overflow-x-auto pb-1">
-                <button v-for="filter in crmFilters" :key="filter.value"
-                        @click="crmFilterMode = filter.value"
-                        class="jelly-btn whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-black border transition-all"
-                        :class="crmFilterMode === filter.value ? 'bg-macaron-peach-500 text-white border-macaron-peach-500 shadow-md' : 'bg-white text-slate-500 border-orange-100 hover:bg-orange-50'">
-                  {{ filter.label }}
-                </button>
+            <div class="p-2">
+              <div class="grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1">
+                <button @click="crmViewMode = 'customers'" class="min-h-[42px] rounded-xl text-xs font-black transition-all"
+                        :class="crmViewMode === 'customers' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'">👥 顧客檔案</button>
+                <button @click="crmViewMode = 'ledger'" class="min-h-[42px] rounded-xl text-xs font-black transition-all"
+                        :class="crmViewMode === 'ledger' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400'">💳 儲值帳本</button>
               </div>
             </div>
           </section>
 
-          <!-- CRM Grid -->
-          <div v-if="filteredCrmList.length === 0" class="bg-white py-16 rounded-4xl text-center text-slate-400 border border-orange-50 font-medium macaron-shadow">
-            <div class="flex flex-col items-center justify-center gap-2 select-none">
-              <span class="text-3xl animate-bounce-slow">🔍</span>
-              <span class="text-sm font-bold text-slate-400">找不到符合搜尋條件的顧客檔案</span>
-              <span class="text-xs text-slate-300">請確認輸入字眼是否正確，或在業績中新增一筆該顧客資料</span>
+          <template v-if="crmViewMode === 'customers'">
+            <section class="bg-white rounded-3xl border border-orange-50 macaron-shadow p-3 sm:p-4 space-y-3">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                  <input type="text" v-model="crmSearchQuery" placeholder="搜尋顧客、服務或配方..."
+                         class="w-full min-h-[44px] jelly-input bg-orange-50/30 border border-orange-100 rounded-2xl pl-10 pr-9 text-sm font-semibold text-slate-700">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm">🔍</span>
+                  <button v-if="crmSearchQuery" @click="crmSearchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-black">×</button>
+                </div>
+                <select v-model="crmSortMode" class="min-h-[44px] jelly-input bg-white border border-orange-100 rounded-2xl px-3 text-xs font-black text-slate-600 sm:w-44">
+                  <option value="lastDate">最近來訪</option>
+                  <option value="totalSpent">消費最高</option>
+                  <option value="prepaidLow">儲值最低</option>
+                  <option value="visits">來訪最多</option>
+                  <option value="name">姓名排序</option>
+                </select>
+              </div>
+              <div class="flex gap-2 overflow-x-auto pb-1">
+                <button v-for="filter in crmFilters" :key="filter.value" @click="crmFilterMode = filter.value"
+                        class="whitespace-nowrap min-h-[36px] rounded-xl px-3 text-[11px] font-black border"
+                        :class="crmFilterMode === filter.value ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-orange-100'">
+                  {{ filter.label }}
+                </button>
+              </div>
+              <div v-if="crmSearchQuery || crmFilterMode !== 'all'" class="text-[10px] font-bold text-slate-400">
+                找到 {{ filteredCrmList.length }} 位顧客
+              </div>
+            </section>
+
+            <div v-if="filteredCrmList.length === 0" class="bg-white py-14 rounded-3xl text-center border border-orange-50 macaron-shadow">
+              <div class="text-3xl">🔍</div>
+              <div class="mt-2 text-sm font-black text-slate-500">找不到符合條件的顧客</div>
+              <button @click="crmSearchQuery = ''; crmFilterMode = 'all'" class="mt-3 text-xs font-black text-macaron-peach-500">清除搜尋與篩選</button>
             </div>
-          </div>
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="cust in filteredCrmList" :key="cust.name"
-                 class="bg-white rounded-4xl border border-orange-50 macaron-shadow p-5 sm:p-6 flex flex-col justify-between hover-lift hover:border-macaron-peach-200 transition-all">
-              
-              <!-- Info block -->
-              <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <!-- Avatar circle with custom gradient -->
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-macaron-cream to-macaron-peach-200 flex items-center justify-center font-black text-xl text-macaron-peach-500 shadow-sm border border-white">
-                      {{ cust.name[0] }}
-                    </div>
-                    <div>
-                      <h4 class="font-black text-slate-800 text-base flex items-center gap-1.5">
-                        {{ cust.name }}
-                        <span class="text-xs px-2 py-0.5 rounded-full font-extrabold"
-                              :class="cust.gender === '男' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'">
-                          {{ cust.gender }}
-                        </span>
-                      </h4>
-                      <p class="text-xs text-slate-400 font-semibold">歷史來訪：{{ cust.count }} 次 · 平均 NT$ {{ formatNumber(cust.avgTicket) }}</p>
-                    </div>
-                  </div>
 
-                  <div class="flex flex-col items-end gap-1">
-                    <span class="text-[10px] font-black px-2 py-1 rounded-full border" :class="cust.statusClass">
-                      {{ cust.statusLabel }}
-                    </span>
-                    <span v-if="cust.rank < 4" class="text-xl" :title="'本期排行第 ' + (cust.rank + 1) + ' 名'">👑</span>
-                  </div>
-                </div>
-
-                <!-- Stats summary -->
-                <div class="grid grid-cols-2 gap-3 py-3 px-4 rounded-3xl bg-orange-50/50 text-slate-700 text-xs font-bold border border-orange-100/50">
-                  <div>
-                    <span class="text-slate-400 font-semibold block uppercase text-[10px] tracking-wide">累計消費</span>
-                    <span class="text-sm font-black text-slate-800">NT$ {{ formatNumber(cust.totalSpent) }}</span>
-                  </div>
-                  <div>
-                    <span class="text-slate-400 font-semibold block uppercase text-[10px] tracking-wide">儲值餘額</span>
-                    <span class="text-sm font-black" :class="cust.prepaidBalance >= 0 ? 'text-macaron-peach-500' : 'text-rose-500'">
-                      NT$ {{ formatNumber(cust.prepaidBalance) }}
-                    </span>
-                    <span v-if="cust.prepaidBalance < 0"
-                          class="block text-[9px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-lg mt-0.5">
-                      ⚠️ 儲值已用完
-                    </span>
-                  </div>
-                </div>
-
-                <!-- CRM intelligence -->
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                  <div class="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                    <span class="text-[10px] text-slate-400 font-black block">最近來訪</span>
-                    <span class="font-black text-slate-700">{{ cust.lastDate }}</span>
-                    <span class="block text-[10px] text-slate-400 font-semibold mt-0.5">{{ cust.daysSinceLastVisit }} 天前</span>
-                  </div>
-                  <div class="rounded-2xl bg-slate-50 border border-slate-100 p-3">
-                    <span class="text-[10px] text-slate-400 font-black block">偏好服務</span>
-                    <span class="font-black text-slate-700 truncate block">{{ cust.primaryService }}</span>
-                    <span class="block text-[10px] text-slate-400 font-semibold mt-0.5">{{ cust.lastService || '尚無服務紀錄' }}</span>
-                  </div>
-                </div>
-
-                <!-- Prepaid progress -->
-                <div v-if="cust.prepaidIn > 0" class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3">
-                  <div class="flex justify-between items-center text-[10px] font-black text-slate-500">
-                    <span>儲值使用進度</span>
-                    <span>{{ cust.prepaidUsedPercent }}%</span>
-                  </div>
-                  <div class="w-full h-1.5 rounded-full bg-white overflow-hidden mt-2">
-                    <div class="h-full rounded-full bg-gradient-to-r from-emerald-300 to-macaron-peach-400"
-                         :style="{ width: cust.prepaidUsedPercent + '%' }"></div>
-                  </div>
-                  <div class="flex justify-between mt-1.5 text-[10px] text-slate-400 font-bold">
-                    <span>已扣 NT$ {{ formatNumber(cust.prepaidOut) }}</span>
-                    <span>總儲值 NT$ {{ formatNumber(cust.prepaidIn) }}</span>
-                  </div>
-                </div>
-
-                <!-- Recent orders -->
-                <div class="rounded-2xl border border-orange-100/50 overflow-hidden">
-                  <div class="px-3 py-2 bg-orange-50/50 text-[10px] font-black text-slate-400 flex justify-between">
-                    <span>最近消費紀錄</span>
-                    <button @click="openCustomerOrders(cust.name)" class="text-macaron-peach-500 hover:text-macaron-peach-600">查看全部</button>
-                  </div>
-                  <div v-if="cust.recentOrders.length === 0" class="px-3 py-3 text-xs text-slate-400 font-semibold">
-                    尚無服務消費紀錄
-                  </div>
-                  <div v-else class="divide-y divide-orange-50">
-                    <div v-for="order in cust.recentOrders" :key="order.id"
-                         class="px-3 py-2 flex items-center justify-between gap-2 text-xs">
+            <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <article v-for="cust in filteredCrmList" :key="cust.name"
+                       class="bg-white rounded-3xl border macaron-shadow overflow-hidden transition-all"
+                       :class="expandedCrmCustomerName === cust.name ? 'border-macaron-peach-200' : 'border-orange-50'">
+                <button type="button" @click="toggleCrmCustomer(cust.name)" class="w-full p-4 text-left">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-macaron-cream to-macaron-peach-200 flex items-center justify-center font-black text-lg text-macaron-peach-500 shrink-0">{{ cust.name[0] }}</div>
                       <div class="min-w-0">
-                        <div class="font-black text-slate-700 truncate">{{ order.serviceName }}</div>
-                        <div class="text-[10px] text-slate-400 font-bold">{{ order.date }} · {{ order.paymentMethod }}</div>
+                        <div class="flex items-center gap-2">
+                          <h4 class="font-black text-slate-800 truncate">{{ cust.name }}</h4>
+                          <span class="text-[9px] px-1.5 py-0.5 rounded-md font-black" :class="cust.gender === '男' ? 'bg-sky-50 text-sky-600' : 'bg-rose-50 text-rose-600'">{{ cust.gender }}</span>
+                        </div>
+                        <p class="mt-1 text-[11px] text-slate-400 font-bold">{{ cust.count }} 次消費 · 最近 {{ cust.daysSinceLastVisit }} 天前</p>
                       </div>
-                      <div class="font-black text-slate-800 whitespace-nowrap">NT$ {{ formatNumber(order.amount) }}</div>
+                    </div>
+                    <span class="text-[9px] font-black px-2 py-1 rounded-lg border shrink-0" :class="cust.statusClass">{{ cust.statusLabel }}</span>
+                  </div>
+                  <div class="grid grid-cols-3 mt-3 pt-3 border-t border-orange-50">
+                    <div><div class="text-[9px] font-black text-slate-400">累計消費</div><div class="text-xs font-black text-slate-700">NT$ {{ formatNumber(cust.totalSpent) }}</div></div>
+                    <div><div class="text-[9px] font-black text-slate-400">儲值餘額</div><div class="text-xs font-black" :class="cust.prepaidBalance > 0 ? 'text-emerald-700' : cust.prepaidBalance < 0 ? 'text-rose-600' : 'text-slate-500'">NT$ {{ formatNumber(cust.prepaidBalance) }}</div></div>
+                    <div class="text-right"><div class="text-[9px] font-black text-slate-400">偏好服務</div><div class="text-xs font-black text-slate-700 truncate">{{ cust.primaryService }}</div></div>
+                  </div>
+                </button>
+
+                <div v-if="expandedCrmCustomerName === cust.name" class="border-t border-orange-100 bg-orange-50/20 p-4 space-y-3">
+                  <div v-if="cust.prepaidIn > 0" class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3">
+                    <div class="flex justify-between text-[10px] font-black text-slate-500"><span>儲值使用 {{ cust.prepaidUsedPercent }}%</span><span>餘額 NT$ {{ formatNumber(cust.prepaidBalance) }}</span></div>
+                    <div class="h-1.5 rounded-full bg-white overflow-hidden mt-2"><div class="h-full rounded-full bg-emerald-400" :style="{ width: cust.prepaidUsedPercent + '%' }"></div></div>
+                    <div class="flex justify-between mt-2 text-[9px] font-bold text-slate-400"><span>已扣 {{ formatNumber(cust.prepaidOut) }}</span><span>總儲值 {{ formatNumber(cust.prepaidIn) }}</span></div>
+                  </div>
+
+                  <div class="rounded-2xl border border-orange-100 bg-white overflow-hidden">
+                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 bg-orange-50/50 flex justify-between"><span>最近消費</span><button @click="openCustomerOrders(cust.name)" class="text-macaron-peach-500">查看全部</button></div>
+                    <div v-if="!cust.recentOrders.length" class="px-3 py-3 text-xs font-bold text-slate-400">尚無服務紀錄</div>
+                    <div v-else class="divide-y divide-orange-50">
+                      <div v-for="order in cust.recentOrders" :key="order.id" class="px-3 py-2.5 flex justify-between gap-3">
+                        <div class="min-w-0"><div class="text-xs font-black text-slate-700 truncate">{{ order.serviceName }}</div><div class="text-[9px] font-bold text-slate-400">{{ order.date }} · {{ order.paymentMethod }}</div></div>
+                        <div class="text-xs font-black text-slate-700 shrink-0">NT$ {{ formatNumber(order.amount) }}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Structured formula record -->
-                <details class="rounded-2xl border border-orange-100/60 bg-orange-50/20 overflow-hidden">
-                  <summary class="cursor-pointer select-none px-3.5 py-3 text-xs font-black text-slate-600 flex items-center justify-between">
-                    <span>💇‍♀️ 結構化美髮配方</span>
-                    <span class="text-[10px] text-macaron-peach-500">{{ cust.hasStructuredFormula ? '已建立' : '待建立' }}</span>
-                  </summary>
-                  <div class="p-3 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label v-for="field in formulaFields" :key="field.key" class="block">
-                      <span class="block text-[10px] font-black text-slate-400 mb-1">{{ field.label }}</span>
-                      <input :value="(crmFormulas[cust.name] || {})[field.key] || ''"
-                             @input="setFormulaField(cust.name, field.key, $event.target.value)"
-                             @blur="saveCrmFormulas(cust.name)" :placeholder="field.placeholder"
-                             class="jelly-input w-full min-h-[40px] rounded-xl border border-orange-100 bg-white px-3 text-xs font-semibold text-slate-700">
-                    </label>
-                    <label class="block sm:col-span-2">
-                      <span class="block text-[10px] font-black text-slate-400 mb-1">自由補充紀錄</span>
-                      <textarea v-model="crmNotes[cust.name]" @input="saveNotes" @blur="saveCrmNotesImmediately"
-                                placeholder="其他配方、操作細節或歷史備註..."
-                                class="w-full jelly-input h-20 bg-white border border-orange-100 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 resize-none"></textarea>
-                    </label>
+                  <details class="rounded-2xl border border-orange-100 bg-white overflow-hidden">
+                    <summary class="min-h-[44px] cursor-pointer px-3 flex items-center justify-between text-xs font-black text-slate-600">
+                      <span>💇‍♀️ 美髮配方與偏好</span><span class="text-[10px] text-macaron-peach-500">{{ cust.hasFormula || cust.hasStructuredFormula ? '已建立' : '待建立' }}</span>
+                    </summary>
+                    <div class="p-3 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label v-for="field in formulaFields" :key="field.key" class="block">
+                        <span class="block text-[10px] font-black text-slate-400 mb-1">{{ field.label }}</span>
+                        <input :value="(crmFormulas[cust.name] || {})[field.key] || ''" @input="setFormulaField(cust.name, field.key, $event.target.value)" @blur="saveCrmFormulas(cust.name)" :placeholder="field.placeholder" class="w-full min-h-[42px] rounded-xl border border-orange-100 bg-white px-3 text-xs font-semibold">
+                      </label>
+                      <label class="block sm:col-span-2"><span class="block text-[10px] font-black text-slate-400 mb-1">補充紀錄</span><textarea v-model="crmNotes[cust.name]" @input="saveNotes" @blur="saveCrmNotesImmediately" placeholder="操作細節、個人喜好或注意事項..." class="w-full h-20 border border-orange-100 rounded-xl px-3 py-2 text-xs font-semibold resize-none"></textarea></label>
+                    </div>
+                  </details>
+
+                  <div class="grid grid-cols-3 gap-2">
+                    <button @click="startOrderForCustomer(cust)" class="min-h-[42px] rounded-xl bg-slate-800 text-white text-[11px] font-black">新增業績</button>
+                    <button @click="startPrepaidForCustomer(cust)" class="min-h-[42px] rounded-xl bg-emerald-600 text-white text-[11px] font-black">新增儲值</button>
+                    <button @click="openCustomerOrders(cust.name)" class="min-h-[42px] rounded-xl bg-white border border-orange-100 text-slate-600 text-[11px] font-black">完整客史</button>
                   </div>
-                </details>
-              </div>
-
-              <!-- Last Visited hint -->
-              <div class="mt-4 pt-3 border-t border-orange-50/50 grid grid-cols-2 gap-2">
-                <button @click="startOrderForCustomer(cust)"
-                        class="jelly-btn min-h-[40px] rounded-2xl bg-gradient-to-r from-macaron-peach-400 to-macaron-rose text-white text-xs font-black shadow-sm">
-                  ➕ 新增業績
-                </button>
-                <button @click="openCustomerOrders(cust.name)"
-                        class="jelly-btn min-h-[40px] rounded-2xl bg-white border border-orange-200 text-slate-600 text-xs font-black">
-                  📋 顧客業績
-                </button>
-                <button v-if="cust.followupDue" @click="copyFollowupMessage(cust)"
-                        class="col-span-2 jelly-btn min-h-[40px] rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 text-xs font-black">
-                  💬 複製回訪提醒 · 已 {{ cust.daysSinceLastVisit }} 天
-                </button>
-                <div class="col-span-2 text-[10px] text-slate-400 font-semibold flex items-center justify-between">
-                  <span>{{ cust.hasFormula || cust.hasStructuredFormula ? '配方紀錄已建立' : '尚未建立配方紀錄' }}</span>
-                  <span class="bg-macaron-peach-50 text-macaron-peach-500 font-bold px-2 py-0.5 rounded-lg">自動儲存</span>
+                  <button v-if="cust.followupDue" @click="copyFollowupMessage(cust)" class="w-full min-h-[42px] rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-xs font-black">複製回訪提醒 · 已 {{ cust.daysSinceLastVisit }} 天</button>
                 </div>
-              </div>
-
+              </article>
             </div>
-          </div>
+          </template>
+
+          <template v-else>
+            <section class="grid grid-cols-3 gap-2">
+              <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-3"><div class="text-[9px] font-black text-emerald-600">累計儲值</div><div class="mt-1 text-sm sm:text-lg font-black text-emerald-800">NT$ {{ formatNumber(prepaidLedgerSummary.totalIn) }}</div></div>
+              <div class="rounded-2xl bg-sky-50 border border-sky-100 p-3"><div class="text-[9px] font-black text-sky-600">累計扣款</div><div class="mt-1 text-sm sm:text-lg font-black text-sky-800">NT$ {{ formatNumber(prepaidLedgerSummary.totalOut) }}</div></div>
+              <div class="rounded-2xl bg-white border border-orange-100 p-3"><div class="text-[9px] font-black text-slate-400">帳面餘額</div><div class="mt-1 text-sm sm:text-lg font-black" :class="prepaidLedgerSummary.balance >= 0 ? 'text-slate-800' : 'text-rose-600'">NT$ {{ formatNumber(prepaidLedgerSummary.balance) }}</div></div>
+            </section>
+
+            <section class="bg-white rounded-3xl border border-orange-50 macaron-shadow p-3 sm:p-4 space-y-3">
+              <div class="relative">
+                <input v-model="prepaidLedgerSearchQuery" type="text" placeholder="搜尋儲值顧客或服務..." class="w-full min-h-[44px] rounded-2xl bg-emerald-50/30 border border-emerald-100 pl-10 pr-9 text-sm font-semibold text-slate-700">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2">🔍</span>
+                <button v-if="prepaidLedgerSearchQuery" @click="prepaidLedgerSearchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-black">×</button>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <button @click="prepaidLedgerFilter = 'all'" class="min-h-[38px] rounded-xl text-[11px] font-black border" :class="prepaidLedgerFilter === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'">全部 {{ prepaidLedgerEntries.length }}</button>
+                <button @click="prepaidLedgerFilter = 'in'" class="min-h-[38px] rounded-xl text-[11px] font-black border" :class="prepaidLedgerFilter === 'in' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 text-emerald-700 border-emerald-100'">進帳</button>
+                <button @click="prepaidLedgerFilter = 'out'" class="min-h-[38px] rounded-xl text-[11px] font-black border" :class="prepaidLedgerFilter === 'out' ? 'bg-sky-600 text-white border-sky-600' : 'bg-sky-50 text-sky-700 border-sky-100'">扣款</button>
+              </div>
+              <div class="text-[10px] font-bold text-slate-400">共 {{ filteredPrepaidLedger.length }} 筆 · {{ prepaidLedgerSummary.customers }} 位儲值顧客</div>
+            </section>
+
+            <div v-if="!prepaidLedgerGroups.length" class="bg-white py-14 rounded-3xl text-center border border-orange-50 macaron-shadow">
+              <div class="text-3xl">💳</div><div class="mt-2 text-sm font-black text-slate-500">目前沒有符合條件的儲值紀錄</div>
+            </div>
+            <div v-else class="space-y-3">
+              <section v-for="group in prepaidLedgerGroups" :key="group.date" class="bg-white rounded-3xl border border-orange-50 macaron-shadow overflow-hidden">
+                <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex justify-between">
+                  <span class="text-xs font-black text-slate-600">{{ group.date }}</span><span class="text-[10px] font-bold text-slate-400">{{ group.entries.length }} 筆異動</span>
+                </div>
+                <div class="divide-y divide-slate-100">
+                  <div v-for="entry in group.entries" :key="entry.id" class="px-4 py-3 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <span class="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0" :class="entry.type === 'in' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700'">{{ entry.type === 'in' ? '＋' : '－' }}</span>
+                      <div class="min-w-0"><div class="text-sm font-black text-slate-800 truncate">{{ entry.customerName }}</div><div class="text-[10px] font-bold text-slate-400 truncate">{{ entry.serviceName }} · {{ entry.paymentMethod }}</div></div>
+                    </div>
+                    <div class="text-right shrink-0"><div class="text-sm font-black" :class="entry.type === 'in' ? 'text-emerald-700' : 'text-sky-700'">{{ entry.type === 'in' ? '+' : '-' }} NT$ {{ formatNumber(entry.amount) }}</div><div class="text-[9px] font-bold text-slate-400">異動後 {{ formatNumber(entry.balanceAfter) }}</div></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </template>
         </div>
 
         <!-- Tab 6: 損益報表 -->
@@ -3049,6 +3091,10 @@
           collapsedExpenseDates: {},
           expenseSearchQuery: '',
           expenseFilterCategory: 'All',
+          showInventoryForm: false,
+          inventorySearchQuery: '',
+          inventoryFilterMode: 'all',
+          expandedInventoryId: null,
           showCloseoutSheet: false,
           mobileDashboardSubTab: 'payment',
           
@@ -3097,6 +3143,10 @@
           crmSearchQuery: '',
           crmFilterMode: 'all',
           crmSortMode: 'lastDate',
+          crmViewMode: 'customers',
+          expandedCrmCustomerName: null,
+          prepaidLedgerSearchQuery: '',
+          prepaidLedgerFilter: 'all',
           ordersSearchQuery: '',
           ordersFilterCategory: 'All',  // D: 類別篩選
           ordersFilterPayment:  'All',  // D: 付款方式篩選
@@ -3674,7 +3724,8 @@
           const query = this.crmSearchQuery.trim().toLowerCase();
           let list = this.crmList.filter(c => {
             const notes = this.crmNotes[c.name] || '';
-            const haystack = `${c.name} ${c.gender || ''} ${c.primaryService} ${c.lastService} ${notes}`.toLowerCase();
+            const formulaText = Object.values(this.crmFormulas[c.name] || {}).join(' ');
+            const haystack = `${c.name} ${c.gender || ''} ${c.primaryService} ${c.lastService} ${notes} ${formulaText}`.toLowerCase();
             const queryMatch = !query || haystack.includes(query);
 
             let filterMatch = true;
@@ -3696,6 +3747,65 @@
             name: (a, b) => a.name.localeCompare(b.name, 'zh-Hant')
           };
           return list.sort(sorters[this.crmSortMode] || sorters.lastDate);
+        },
+
+        prepaidLedgerEntries() {
+          const balances = {};
+          return this.orders
+            .map((order, index) => ({ order, index }))
+            .filter(({ order }) => this.isOrderActive(order) && order.customerName && !this.isBlockedSlot(order.customerName))
+            .filter(({ order }) => ['儲值進帳', '儲值扣款', '現金＋儲值扣款'].includes(order.paymentMethod))
+            .sort((a, b) => String(a.order.date).localeCompare(String(b.order.date)) || a.index - b.index)
+            .map(({ order: o }) => {
+              const isTopup = o.paymentMethod === '儲值進帳';
+              const amount = isTopup
+                ? (Number(o.amount) || 0)
+                : o.paymentMethod === '現金＋儲值扣款'
+                  ? this.getMixedPrepaidAmount(o)
+                  : (Number(o.amount) || 0);
+              balances[o.customerName] = (balances[o.customerName] || 0) + (isTopup ? amount : -amount);
+              return {
+                id: o.id,
+                date: o.date,
+                customerName: o.customerName,
+                serviceName: isTopup ? '儲值進帳' : (o.serviceName || '服務扣款'),
+                paymentMethod: o.paymentMethod,
+                type: isTopup ? 'in' : 'out',
+                amount,
+                balanceAfter: balances[o.customerName]
+              };
+            })
+            .reverse();
+        },
+
+        filteredPrepaidLedger() {
+          const query = this.prepaidLedgerSearchQuery.trim().toLowerCase();
+          return this.prepaidLedgerEntries.filter(entry => {
+            const queryMatch = !query || `${entry.customerName} ${entry.serviceName}`.toLowerCase().includes(query);
+            const typeMatch = this.prepaidLedgerFilter === 'all' || entry.type === this.prepaidLedgerFilter;
+            return queryMatch && typeMatch;
+          });
+        },
+
+        prepaidLedgerGroups() {
+          const groups = {};
+          this.filteredPrepaidLedger.forEach(entry => {
+            if (!groups[entry.date]) groups[entry.date] = [];
+            groups[entry.date].push(entry);
+          });
+          return Object.entries(groups).map(([date, entries]) => ({ date, entries }));
+        },
+
+        prepaidLedgerSummary() {
+          const entries = this.prepaidLedgerEntries;
+          const totalIn = entries.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0);
+          const totalOut = entries.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0);
+          return {
+            totalIn,
+            totalOut,
+            balance: totalIn - totalOut,
+            customers: this.crmList.filter(c => c.prepaidIn > 0 || c.prepaidOut > 0).length
+          };
         },
         // ── 損益報表（第 6 Tab）──────────────────────────────
         // ── 同比分析 ──────────────────────────────────────────
@@ -3947,6 +4057,35 @@
         },
         // ────────────────────────────────────────────────────
 
+        filteredInventory() {
+          const query = this.inventorySearchQuery.trim().toLowerCase();
+          return this.inventory
+            .filter(item => {
+              const stock = Number(item.stock) || 0;
+              const searchMatch = !query
+                || String(item.name || '').toLowerCase().includes(query)
+                || String(item.notes || '').toLowerCase().includes(query);
+              const statusMatch = this.inventoryFilterMode === 'all'
+                || (this.inventoryFilterMode === 'low' && stock > 0 && stock < 3)
+                || (this.inventoryFilterMode === 'out' && stock === 0);
+              return searchMatch && statusMatch;
+            })
+            .sort((a, b) => {
+              const stockDiff = (Number(a.stock) || 0) - (Number(b.stock) || 0);
+              return stockDiff || String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hant');
+            });
+        },
+        inventorySummary() {
+          return {
+            items: this.inventory.length,
+            units: this.inventory.reduce((sum, item) => sum + Math.max(0, Number(item.stock) || 0), 0),
+            low: this.inventory.filter(item => {
+              const stock = Number(item.stock) || 0;
+              return stock > 0 && stock < 3;
+            }).length,
+            out: this.inventory.filter(item => (Number(item.stock) || 0) === 0).length
+          };
+        },
         lowStockItems() {
           return this.inventory.filter(item => item.stock < 3);
         },
@@ -4590,10 +4729,15 @@
         // Navigate from dashboard customer rank to CRM profile
         goToCustomerCRM(name) {
           this.activeTab = 'crm';
+          this.crmViewMode = 'customers';
           this.crmFilterMode = 'all';
           this.crmSortMode = 'lastDate';
           this.crmSearchQuery = name;
+          this.expandedCrmCustomerName = name;
           window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        toggleCrmCustomer(name) {
+          this.expandedCrmCustomerName = this.expandedCrmCustomerName === name ? null : name;
         },
         startOrderForCustomer(cust) {
           this.newOrder.date = new Date().toLocaleDateString('sv-SE');
@@ -4607,6 +4751,22 @@
           this.activeTab = 'orders';
           this.ordersSearchQuery = cust.name;
           this.showToast(`已帶入 ${cust.name}，可直接新增本次業績`);
+          this.$nextTick(() => {
+            if (this.$refs.customerNameInput) this.$refs.customerNameInput.focus();
+          });
+        },
+        startPrepaidForCustomer(cust) {
+          this.newOrder.date = new Date().toLocaleDateString('sv-SE');
+          this.newOrder.customerName = cust.name;
+          this.newOrder.gender = cust.gender || '女';
+          this.newOrder.serviceName = '儲值進帳';
+          this.newOrder.amount = null;
+          this.newOrder.paymentMethod = '儲值進帳';
+          this.newOrder.cashAmount = null;
+          this.showMobileAddOrderForm = true;
+          this.activeTab = 'orders';
+          this.ordersSearchQuery = cust.name;
+          this.showToast(`已帶入 ${cust.name}，請輸入本次儲值金額`);
           this.$nextTick(() => {
             if (this.$refs.customerNameInput) this.$refs.customerNameInput.focus();
           });
@@ -4841,14 +5001,25 @@
           this.newInventory.name = '';
           this.newInventory.stock = null;
           this.newInventory.notes = '';
+          this.showInventoryForm = false;
         },
         adjustStock(item, diff) {
-          item.stock = Math.max(0, item.stock + diff);
+          item.stock = Math.max(0, (Number(item.stock) || 0) + diff);
           this.saveInventory();
+        },
+        toggleInventoryEditor(id) {
+          this.expandedInventoryId = this.expandedInventoryId === id ? null : id;
+        },
+        getInventoryStatus(item) {
+          const stock = Number(item.stock) || 0;
+          if (stock === 0) return { label: '缺貨', badge: 'bg-rose-100 text-rose-700', dot: 'bg-rose-500' };
+          if (stock < 3) return { label: '低庫存', badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' };
+          return { label: '庫存正常', badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
         },
         deleteInventoryItem(id) {
           this.showConfirm('確定要刪除此庫存品項嗎？', () => {
             this.inventory = this.inventory.filter(i => i.id !== id);
+            if (this.expandedInventoryId === id) this.expandedInventoryId = null;
             this.saveInventory();
             this.showToast('🍧 商品已從庫存移除');
           });
