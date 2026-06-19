@@ -212,76 +212,64 @@
       }
 
       header {
-        position: relative !important;
+        position: sticky !important;
+        top: 0 !important;
         padding-top: calc(0.75rem + env(safe-area-inset-top, 0px)) !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        padding-bottom: 0.75rem !important;
+        padding-left: 0.875rem !important;
+        padding-right: 0.875rem !important;
+        padding-bottom: 0.625rem !important;
       }
 
-      header > div {
-        align-items: stretch !important;
-        gap: 0.65rem !important;
+      .desktop-header-content,
+      .desktop-status-row {
+        display: none !important;
       }
 
-      header > div > div:first-child {
-        justify-content: center;
+      .mobile-header-content {
+        display: flex !important;
+        flex-direction: column;
+        gap: 0.55rem;
+        width: 100%;
+      }
+
+      .mobile-header-brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 2.25rem;
+      }
+
+      .mobile-header-controls {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.55rem;
+        align-items: center;
+      }
+
+      .mobile-month-selector {
         min-width: 0;
+        min-height: 2.65rem;
       }
 
-      header > div > div:first-child > div:first-child {
-        width: 2.4rem !important;
-        height: 2.4rem !important;
-        border-radius: 1rem !important;
-        font-size: 1.25rem !important;
+      .mobile-month-selector select {
+        min-width: 0;
+        font-size: 0.78rem !important;
+        padding-left: 0.75rem !important;
       }
 
-      header h1 {
-        font-size: 1.05rem !important;
-        line-height: 1.15 !important;
-        white-space: nowrap;
+      .mobile-sync-button {
+        width: auto !important;
+        min-width: 6.5rem;
+        min-height: 2.65rem !important;
+        padding-left: 0.9rem !important;
+        padding-right: 0.9rem !important;
       }
 
-      header p {
-        font-size: 0.62rem !important;
-        line-height: 1.1 !important;
-      }
-
-      header > div > div:last-child {
-        width: 100%;
-        gap: 0.55rem !important;
-      }
-
-      header > div > div:last-child > div:first-child {
-        width: min(100%, 14.5rem);
-        margin-left: auto;
-        margin-right: auto;
-      }
-
-      header > div > div:last-child > div:last-child {
-        display: grid !important;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.5rem !important;
-        width: 100%;
-      }
-
-      header button {
-        min-height: 2.75rem;
-        width: 100%;
-        justify-content: center;
-        padding-left: 0.55rem !important;
-        padding-right: 0.55rem !important;
-        gap: 0.35rem !important;
-      }
-
-      header button span {
-        white-space: nowrap;
-        font-size: 0.68rem;
-        line-height: 1;
-      }
-
-      header button svg {
-        flex: 0 0 auto;
+      .mobile-tools-button {
+        width: 2.35rem !important;
+        height: 2.35rem !important;
+        min-height: 2.35rem !important;
+        padding: 0 !important;
       }
 
       header .absolute.top-full {
@@ -451,7 +439,40 @@
     
     <!-- Top Nav / Header -->
     <header class="glass-panel relative sm:sticky top-0 z-40 macaron-shadow border-b border-orange-100/50 safe-pt py-2.5 sm:py-4 px-4 sm:px-6">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+      <!-- Compact mobile header -->
+      <div class="mobile-header-content hidden max-w-7xl mx-auto">
+        <div class="mobile-header-brand">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-8 h-8 shrink-0 rounded-xl bg-gradient-to-tr from-macaron-peach-300 to-macaron-rose flex items-center justify-center text-lg shadow-sm rotate-3">🐾</div>
+            <h1 class="text-base font-black text-slate-800 tracking-tight truncate">摸摸頭 momohair</h1>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="w-2.5 h-2.5 rounded-full ring-4" :class="online ? 'bg-emerald-500 ring-emerald-50' : 'bg-rose-500 ring-rose-50'" :aria-label="online ? '已連線' : '離線模式'" :title="online ? '已連線' : '離線模式'"></span>
+            <button @click="showMobileTools = true" class="mobile-tools-button jelly-btn rounded-full bg-white border border-orange-100 text-slate-500 flex items-center justify-center shadow-sm" aria-label="開啟更多工具">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="mobile-header-controls">
+          <div class="mobile-month-selector flex items-center bg-white/90 rounded-2xl px-1 border border-macaron-peach-200 shadow-sm">
+            <select v-model="selectedYear" class="flex-1 bg-transparent font-bold py-2 focus:outline-none text-slate-700">
+              <option v-for="yr in yearOptions" :key="yr" :value="yr">{{ yr }} 年</option>
+            </select>
+            <span class="text-slate-300">|</span>
+            <select v-model="selectedMonth" class="flex-1 bg-transparent font-bold py-2 focus:outline-none text-slate-700">
+              <option value="All">全年</option>
+              <option v-for="m in monthOptions" :key="m" :value="m">{{ m }} 月</option>
+            </select>
+          </div>
+          <button @click="syncFromApi" :disabled="syncing"
+                  class="mobile-sync-button jelly-btn rounded-2xl bg-gradient-to-r from-macaron-peach-400 to-macaron-rose text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50">
+            <svg :class="{ 'animate-spin': syncing }" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992M2.985 19.644v-4.992h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182V4.356"/></svg>
+            <span>{{ syncing ? '同步中' : '同步' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="desktop-header-content max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
         <!-- Brand -->
         <div class="flex items-center gap-2 sm:gap-3">
           <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-macaron-peach-300 to-macaron-rose flex items-center justify-center text-xl sm:text-2xl shadow-sm sm:shadow-md transform rotate-3 select-none">
@@ -555,7 +576,7 @@
           </div>
         </div>
       </div>
-      <div class="max-w-7xl mx-auto mt-1 flex justify-center sm:justify-end gap-2 text-[9px] font-black">
+      <div class="desktop-status-row max-w-7xl mx-auto mt-1 flex justify-center sm:justify-end gap-2 text-[9px] font-black">
         <span class="px-2 py-0.5 rounded-full" :class="online ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'">
           {{ online ? '● 已連線' : '● 離線模式' }}
         </span>
@@ -563,6 +584,58 @@
         <span v-else class="px-2 py-0.5 rounded-full bg-sky-50 text-sky-600">主畫面 App 模式</span>
       </div>
     </header>
+
+    <!-- Mobile tools sheet -->
+    <transition name="fade">
+      <div v-if="showMobileTools" class="fixed inset-0 z-[80] flex items-end bg-slate-900/40 sm:hidden" @click="showMobileTools = false">
+        <div class="w-full max-h-[86dvh] overflow-y-auto rounded-t-3xl bg-white border border-orange-100 macaron-shadow-lg safe-pb" @click.stop>
+          <div class="sticky top-0 z-10 bg-white px-5 py-4 border-b border-orange-100 flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-black text-slate-800">工具與設定</h2>
+              <p class="mt-0.5 text-[10px] font-bold text-slate-400">
+                <span :class="online ? 'text-emerald-600' : 'text-rose-500'">{{ online ? '● 已連線' : '● 離線模式' }}</span>
+                <span v-if="lastSyncTime"> · 最後同步 {{ lastSyncTime }}</span>
+              </p>
+            </div>
+            <button @click="showMobileTools = false" class="w-10 h-10 rounded-full bg-slate-50 text-slate-500 font-black" aria-label="關閉工具面板">✕</button>
+          </div>
+
+          <div class="p-4 space-y-4">
+            <section class="space-y-2">
+              <div class="px-1 text-[10px] font-black text-slate-400">系統工具</div>
+              <button @click="showMobileTools = false; openServiceConfigModal()" class="w-full min-h-[50px] px-4 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-between text-left">
+                <span><span class="mr-2">⚙️</span><span class="text-sm font-black text-slate-700">服務定價與時長</span></span>
+                <span class="text-slate-300">›</span>
+              </button>
+              <button v-if="!isStandalone" @click="showMobileTools = false; showIosGuide = true" class="w-full min-h-[50px] px-4 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-between text-left">
+                <span><span class="mr-2">📱</span><span class="text-sm font-black text-sky-700">加入 iPhone 主畫面</span></span>
+                <span class="text-sky-300">›</span>
+              </button>
+            </section>
+
+            <section class="space-y-2">
+              <div class="px-1 text-[10px] font-black text-slate-400">資料安全</div>
+              <div class="grid grid-cols-2 gap-2">
+                <button @click="showMobileTools = false; exportBackup()" class="min-h-[50px] rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-black">📤 匯出備份</button>
+                <label class="min-h-[50px] rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-black flex items-center justify-center cursor-pointer">
+                  📥 匯入還原
+                  <input type="file" @change="showMobileTools = false; importBackup($event)" accept=".json" class="hidden">
+                </label>
+              </div>
+            </section>
+
+            <section class="space-y-2">
+              <div class="px-1 text-[10px] font-black text-slate-400">匯出報表</div>
+              <div class="rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-100">
+                <button @click="showMobileTools = false; exportCSV()" class="w-full min-h-[48px] px-4 flex items-center justify-between text-left text-sm font-bold text-slate-600"><span>📊 當期業績 CSV</span><span class="text-slate-300">›</span></button>
+                <button @click="showMobileTools = false; exportCrmCSV()" class="w-full min-h-[48px] px-4 flex items-center justify-between text-left text-sm font-bold text-slate-600"><span>👥 CRM 顧客 CSV</span><span class="text-slate-300">›</span></button>
+                <button @click="showMobileTools = false; exportExpensesCSV()" class="w-full min-h-[48px] px-4 flex items-center justify-between text-left text-sm font-bold text-slate-600"><span>🧾 支出明細 CSV</span><span class="text-slate-300">›</span></button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- Global Toast Alert -->
     <transition name="fade">
@@ -2953,6 +3026,7 @@
           selectedMonth: curMonth,
           
           showDataTools: false,
+          showMobileTools: false,
           syncing: false,
           lastSyncTime: localStorage.getItem('momo_last_sync_time') || null,
           syncReport: safeParse(localStorage.getItem('momo_sync_report'), null),
