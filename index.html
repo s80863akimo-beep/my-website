@@ -455,14 +455,11 @@
         </div>
         <div class="mobile-header-controls">
           <div class="mobile-month-selector flex items-center bg-white/90 rounded-2xl px-1 border border-macaron-peach-200 shadow-sm">
-            <select v-model="selectedYear" class="flex-1 bg-transparent font-bold py-2 focus:outline-none text-slate-700">
-              <option v-for="yr in yearOptions" :key="yr" :value="yr">{{ yr }} 年</option>
-            </select>
-            <span class="text-slate-300">|</span>
-            <select v-model="selectedMonth" class="flex-1 bg-transparent font-bold py-2 focus:outline-none text-slate-700">
-              <option value="All">全年</option>
-              <option v-for="m in monthOptions" :key="m" :value="m">{{ m }} 月</option>
-            </select>
+            <button type="button" @click="shiftMonth(-1)" class="w-10 min-h-[42px] rounded-xl text-slate-500 font-black" aria-label="上一個月">‹</button>
+            <button type="button" @click="toggleAnnualView" class="flex-1 min-h-[42px] text-sm font-black text-slate-700 whitespace-nowrap" title="點擊切換全年／月份">
+              {{ selectedYear }} 年 {{ selectedMonth === 'All' ? '全年' : selectedMonth + ' 月' }}
+            </button>
+            <button type="button" @click="shiftMonth(1)" class="w-10 min-h-[42px] rounded-xl text-slate-500 font-black" aria-label="下一個月">›</button>
           </div>
           <button @click="syncFromApi" :disabled="syncing"
                   class="mobile-sync-button jelly-btn rounded-2xl bg-gradient-to-r from-macaron-peach-400 to-macaron-rose text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50">
@@ -491,14 +488,11 @@
           
           <!-- Month/Year Selector -->
           <div class="flex items-center bg-white/70 rounded-full p-1 border border-macaron-peach-200 macaron-shadow-sm">
-            <select v-model="selectedYear" class="bg-transparent text-sm font-bold px-3 py-1.5 focus:outline-none cursor-pointer text-slate-700">
-              <option v-for="yr in yearOptions" :key="yr" :value="yr">{{ yr }} 年</option>
-            </select>
-            <span class="text-slate-300">|</span>
-            <select v-model="selectedMonth" class="bg-transparent text-sm font-bold px-3 py-1.5 focus:outline-none cursor-pointer text-slate-700">
-              <option value="All">全部月份</option>
-              <option v-for="m in monthOptions" :key="m" :value="m">{{ m }} 月</option>
-            </select>
+            <button type="button" @click="shiftMonth(-1)" class="w-9 h-9 rounded-full hover:bg-orange-50 text-slate-500 text-lg font-black" aria-label="上一個月">‹</button>
+            <button type="button" @click="toggleAnnualView" class="min-w-[126px] px-3 py-1.5 text-sm font-black text-slate-700" title="點擊切換全年／月份">
+              {{ selectedYear }} 年 {{ selectedMonth === 'All' ? '全年' : selectedMonth + ' 月' }}
+            </button>
+            <button type="button" @click="shiftMonth(1)" class="w-9 h-9 rounded-full hover:bg-orange-50 text-slate-500 text-lg font-black" aria-label="下一個月">›</button>
           </div>
 
           <!-- Actions -->
@@ -775,7 +769,7 @@
                         class="jelly-btn flex-1 min-h-[44px] rounded-2xl bg-gradient-to-r from-macaron-peach-400 to-macaron-rose text-white text-xs font-black shadow-md">
                   ➕ 新增業績
                 </button>
-                <button @click="nextTodayOrder ? goToCustomerCRM(nextTodayOrder.customerName) : (activeTab = 'crm')"
+                <button @click="nextTodayOrder ? goToCustomerCRM(nextTodayOrder.customerId || nextTodayOrder.customerName) : (activeTab = 'crm')"
                         class="jelly-btn flex-1 min-h-[44px] rounded-2xl bg-white border border-orange-200 text-slate-700 text-xs font-black shadow-sm">
                   🧴 查配方
                 </button>
@@ -1072,7 +1066,7 @@
               </div>
               <div v-else class="space-y-2.5 sm:space-y-3">
                 <div v-for="(cust, idx) in topCustomers" :key="cust.name" 
-                     @click="goToCustomerCRM(cust.name)"
+                     @click="goToCustomerCRM(cust.id || cust.name)"
                      class="flex items-center justify-between p-2.5 rounded-2xl hover:bg-orange-50/40 border border-transparent hover:border-orange-100/50 cursor-pointer transition-all hover-lift"
                      title="點擊查看顧客美髮配方與儲值金">
                   <div class="flex items-center gap-2.5 sm:gap-3">
@@ -1174,7 +1168,7 @@
                       {{ nextTodayOrder ? nextTodayOrder.serviceName : '同步行事曆後會顯示今日顧客' }}
                     </div>
                   </div>
-                  <button @click="nextTodayOrder ? goToCustomerCRM(nextTodayOrder.customerName) : (activeTab = 'crm')"
+                  <button @click="nextTodayOrder ? goToCustomerCRM(nextTodayOrder.customerId || nextTodayOrder.customerName) : (activeTab = 'crm')"
                           class="shrink-0 min-h-[44px] px-4 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 text-xs font-black">
                     查看顧客
                   </button>
@@ -1197,7 +1191,7 @@
                         class="min-h-[82px] lg:min-h-[64px] px-2 flex flex-col lg:flex-row items-center justify-center gap-1.5 lg:gap-3 bg-macaron-peach-500 text-white border-r lg:border-r-0 lg:border-b border-white/25 text-xs font-black">
                   <span class="text-xl leading-none">＋</span><span>新增業績</span>
                 </button>
-                <button @click="nextTodayOrder ? goToCustomerCRM(nextTodayOrder.customerName) : (activeTab = 'crm')"
+                <button @click="nextTodayOrder ? goToCustomerCRM(nextTodayOrder.customerId || nextTodayOrder.customerName) : (activeTab = 'crm')"
                         class="min-h-[82px] lg:min-h-[64px] px-2 flex flex-col lg:flex-row items-center justify-center gap-1.5 lg:gap-3 bg-emerald-50 text-emerald-700 border-r lg:border-r-0 lg:border-b border-emerald-100 text-xs font-black">
                   <span class="text-lg leading-none">♨</span><span>查配方</span>
                 </button>
@@ -1298,7 +1292,7 @@
               </div>
 
               <div v-else-if="mobileDashboardSubTab === 'customers'" class="divide-y divide-slate-100">
-                <button v-for="(cust, idx) in topCustomers" :key="cust.name" @click="goToCustomerCRM(cust.name)"
+                <button v-for="(cust, idx) in topCustomers" :key="cust.id || cust.name" @click="goToCustomerCRM(cust.id || cust.name)"
                         class="w-full flex items-center justify-between py-3 first:pt-0 last:pb-0 text-left">
                   <div class="flex items-center gap-3 min-w-0">
                     <span class="w-8 h-8 shrink-0 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black">{{ idx + 1 }}</span>
@@ -1356,7 +1350,7 @@
           <div class="bg-white rounded-3xl sm:rounded-4xl border border-orange-50 macaron-shadow overflow-hidden">
             <div class="px-5 py-3 border-b border-orange-50 flex items-center justify-between">
               <h3 class="font-black text-slate-700 text-sm flex items-center gap-1.5">
-                <span>📋</span> {{ selectedYear }} 年 {{ selectedMonth === 'All' ? '全年度' : selectedMonth + ' 月' }} 業績摘要
+                <span>📋</span> {{ ordersCustomerHistoryId ? '顧客完整客史（全部年份）' : selectedYear + ' 年 ' + (selectedMonth === 'All' ? '全年度' : selectedMonth + ' 月') + ' 業績摘要' }}
               </h3>
             </div>
             <div class="grid grid-cols-3 divide-x divide-orange-50">
@@ -1409,8 +1403,16 @@
                            autocapitalize="words" autocorrect="off" autocomplete="off" spellcheck="false"
                            class="w-full jelly-input bg-orange-50/30 border border-orange-100 rounded-2xl px-4 py-2.5 text-sm font-semibold text-slate-700">
                     <datalist id="existing-customers">
-                      <option v-for="c in crmList" :key="c.name" :value="c.name"></option>
+                      <option v-for="c in customerOptions" :key="c.id" :value="c.name"></option>
                     </datalist>
+                    <select v-if="customerOptions.length" v-model="newOrder.customerId" @change="selectNewOrderCustomer"
+                            class="mt-2 w-full min-h-[38px] rounded-xl border border-orange-100 bg-white px-3 text-[11px] font-bold text-slate-600">
+                      <option value="">新顧客／依上方姓名建立</option>
+                      <option v-for="c in customerOptions" :key="c.id" :value="c.id">{{ c.name }} · ID {{ shortCustomerId(c.id) }}</option>
+                    </select>
+                    <label v-if="!newOrder.customerId && findCustomerByName(newOrder.customerName)" class="mt-2 flex items-center gap-2 text-[10px] font-bold text-amber-700">
+                      <input type="checkbox" v-model="newOrder.createNewCustomer" class="rounded border-amber-200"> 這是同名的新顧客，建立新的 Customer ID
+                    </label>
                   </div>
                   <div>
                     <label class="block text-xs font-black text-slate-400 uppercase mb-1">性別</label>
@@ -1475,6 +1477,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 class="font-black text-slate-800 text-lg flex items-center gap-2">
                     <span>📊</span> 業績明細清單
+                    <button v-if="ordersCustomerHistoryId" type="button" @click="closeCustomerHistory" class="rounded-lg bg-emerald-50 border border-emerald-100 px-2 py-1 text-[10px] font-black text-emerald-700">完整客史 · 全部年份 ×</button>
                   </h3>
                   <div class="flex items-center gap-2 w-full sm:w-auto">
                     <div class="relative flex-1 sm:w-56">
@@ -1602,7 +1605,7 @@
                         <tr v-if="expandedOrderId === order.id" class="bg-orange-50/30">
                           <td colspan="6" class="p-4">
                             <div class="grid grid-cols-6 gap-3 items-end">
-                              <label class="col-span-2 text-[10px] font-black text-slate-400">顧客姓名<input type="text" v-model="order.customerName" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700"></label>
+                              <label class="col-span-2 text-[10px] font-black text-slate-400">顧客（穩定 ID）<select v-model="order.customerId" @change="onOrderCustomerIdChanged(order)" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700"><option v-for="c in customerOptions" :key="c.id" :value="c.id">{{ c.name }} · {{ shortCustomerId(c.id) }}</option></select></label>
                               <label class="text-[10px] font-black text-slate-400">性別<select v-model="order.gender" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold"><option value="女">女</option><option value="男">男</option></select></label>
                               <label class="col-span-3 text-[10px] font-black text-slate-400">服務內容<input type="text" v-model="order.serviceName" @change="saveOrders" list="common-services" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-bold text-slate-700"></label>
                               <label class="col-span-2 text-[10px] font-black text-slate-400">金額<input type="number" v-model.number="order.amount" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2 text-sm font-black text-right"></label>
@@ -1645,7 +1648,7 @@
                     </button>
                     <div v-if="expandedOrderId === order.id" class="p-3.5 pt-0 border-t border-orange-50 bg-orange-50/25 space-y-3">
                       <div class="grid grid-cols-3 gap-2 pt-3">
-                        <label class="col-span-2 text-[10px] font-black text-slate-400">顧客姓名<input type="text" v-model="order.customerName" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-bold"></label>
+                        <label class="col-span-2 text-[10px] font-black text-slate-400">顧客（穩定 ID）<select v-model="order.customerId" @change="onOrderCustomerIdChanged(order)" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-bold"><option v-for="c in customerOptions" :key="c.id" :value="c.id">{{ c.name }} · {{ shortCustomerId(c.id) }}</option></select></label>
                         <label class="text-[10px] font-black text-slate-400">性別<select v-model="order.gender" @change="saveOrders" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-2 py-2.5 text-sm font-bold"><option value="女">女</option><option value="男">男</option></select></label>
                       </div>
                       <label class="block text-[10px] font-black text-slate-400">服務內容<input type="text" v-model="order.serviceName" @change="saveOrders" list="common-services" class="mt-1 w-full jelly-input bg-white border border-orange-100 rounded-xl px-3 py-2.5 text-sm font-bold"></label>
@@ -2155,10 +2158,10 @@
             </div>
 
             <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <article v-for="cust in filteredCrmList" :key="cust.name"
+              <article v-for="cust in filteredCrmList" :key="cust.id"
                        class="bg-white rounded-3xl border macaron-shadow overflow-hidden transition-all"
-                       :class="expandedCrmCustomerName === cust.name ? 'border-macaron-peach-200' : 'border-orange-50'">
-                <button type="button" @click="toggleCrmCustomer(cust.name)" class="w-full p-4 text-left">
+                       :class="expandedCrmCustomerName === cust.id ? 'border-macaron-peach-200' : 'border-orange-50'">
+                <button type="button" @click="toggleCrmCustomer(cust.id)" class="w-full p-4 text-left">
                   <div class="flex items-start justify-between gap-3">
                     <div class="flex items-center gap-3 min-w-0">
                       <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-macaron-cream to-macaron-peach-200 flex items-center justify-center font-black text-lg text-macaron-peach-500 shrink-0">{{ cust.name[0] }}</div>
@@ -2167,7 +2170,7 @@
                           <h4 class="font-black text-slate-800 truncate">{{ cust.name }}</h4>
                           <span class="text-[9px] px-1.5 py-0.5 rounded-md font-black" :class="cust.gender === '男' ? 'bg-sky-50 text-sky-600' : 'bg-rose-50 text-rose-600'">{{ cust.gender }}</span>
                         </div>
-                        <p class="mt-1 text-[11px] text-slate-400 font-bold">{{ cust.count }} 次消費 · 最近 {{ cust.daysSinceLastVisit }} 天前</p>
+                        <p class="mt-1 text-[11px] text-slate-400 font-bold">ID {{ shortCustomerId(cust.id) }} · {{ cust.count }} 次消費 · 最近 {{ cust.daysSinceLastVisit }} 天前</p>
                       </div>
                     </div>
                     <span class="text-[9px] font-black px-2 py-1 rounded-lg border shrink-0" :class="cust.statusClass">{{ cust.statusLabel }}</span>
@@ -2179,7 +2182,7 @@
                   </div>
                 </button>
 
-                <div v-if="expandedCrmCustomerName === cust.name" class="border-t border-orange-100 bg-orange-50/20 p-4 space-y-3">
+                <div v-if="expandedCrmCustomerName === cust.id" class="border-t border-orange-100 bg-orange-50/20 p-4 space-y-3">
                   <div v-if="cust.prepaidIn > 0" class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3">
                     <div class="flex justify-between text-[10px] font-black text-slate-500"><span>儲值使用 {{ cust.prepaidUsedPercent }}%</span><span>餘額 NT$ {{ formatNumber(cust.prepaidBalance) }}</span></div>
                     <div class="h-1.5 rounded-full bg-white overflow-hidden mt-2"><div class="h-full rounded-full bg-emerald-400" :style="{ width: cust.prepaidUsedPercent + '%' }"></div></div>
@@ -2187,7 +2190,7 @@
                   </div>
 
                   <div class="rounded-2xl border border-orange-100 bg-white overflow-hidden">
-                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 bg-orange-50/50 flex justify-between"><span>最近消費</span><button @click="openCustomerOrders(cust.name)" class="text-macaron-peach-500">查看全部</button></div>
+                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 bg-orange-50/50 flex justify-between"><span>最近消費</span><button @click="openCustomerOrders(cust.id)" class="text-macaron-peach-500">查看全部</button></div>
                     <div v-if="!cust.recentOrders.length" class="px-3 py-3 text-xs font-bold text-slate-400">尚無服務紀錄</div>
                     <div v-else class="divide-y divide-orange-50">
                       <div v-for="order in cust.recentOrders" :key="order.id" class="px-3 py-2.5 flex justify-between gap-3">
@@ -2204,16 +2207,16 @@
                     <div class="p-3 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <label v-for="field in formulaFields" :key="field.key" class="block">
                         <span class="block text-[10px] font-black text-slate-400 mb-1">{{ field.label }}</span>
-                        <input :value="(crmFormulas[cust.name] || {})[field.key] || ''" @input="setFormulaField(cust.name, field.key, $event.target.value)" @blur="saveCrmFormulas(cust.name)" :placeholder="field.placeholder" class="w-full min-h-[42px] rounded-xl border border-orange-100 bg-white px-3 text-xs font-semibold">
+                        <input :value="(crmFormulas[cust.id] || {})[field.key] || ''" @input="setFormulaField(cust.id, field.key, $event.target.value)" @blur="saveCrmFormulas(cust.id)" :placeholder="field.placeholder" class="w-full min-h-[42px] rounded-xl border border-orange-100 bg-white px-3 text-xs font-semibold">
                       </label>
-                      <label class="block sm:col-span-2"><span class="block text-[10px] font-black text-slate-400 mb-1">補充紀錄</span><textarea v-model="crmNotes[cust.name]" @input="saveNotes" @blur="saveCrmNotesImmediately" placeholder="操作細節、個人喜好或注意事項..." class="w-full h-20 border border-orange-100 rounded-xl px-3 py-2 text-xs font-semibold resize-none"></textarea></label>
+                      <label class="block sm:col-span-2"><span class="block text-[10px] font-black text-slate-400 mb-1">補充紀錄</span><textarea v-model="crmNotes[cust.id]" @input="saveNotes" @blur="saveCrmNotesImmediately" placeholder="操作細節、個人喜好或注意事項..." class="w-full h-20 border border-orange-100 rounded-xl px-3 py-2 text-xs font-semibold resize-none"></textarea></label>
                     </div>
                   </details>
 
                   <div class="grid grid-cols-3 gap-2">
                     <button @click="startOrderForCustomer(cust)" class="min-h-[42px] rounded-xl bg-slate-800 text-white text-[11px] font-black">新增業績</button>
                     <button @click="startPrepaidForCustomer(cust)" class="min-h-[42px] rounded-xl bg-emerald-600 text-white text-[11px] font-black">新增儲值</button>
-                    <button @click="openCustomerOrders(cust.name)" class="min-h-[42px] rounded-xl bg-white border border-orange-100 text-slate-600 text-[11px] font-black">完整客史</button>
+                    <button @click="openCustomerOrders(cust.id)" class="min-h-[42px] rounded-xl bg-white border border-orange-100 text-slate-600 text-[11px] font-black">完整客史</button>
                   </div>
                   <button v-if="cust.followupDue" @click="copyFollowupMessage(cust)" class="w-full min-h-[42px] rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-xs font-black">複製回訪提醒 · 已 {{ cust.daysSinceLastVisit }} 天</button>
                 </div>
@@ -2254,7 +2257,7 @@
                   <div v-for="entry in group.entries" :key="entry.id" class="px-4 py-3 flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3 min-w-0">
                       <span class="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0" :class="entry.type === 'in' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700'">{{ entry.type === 'in' ? '＋' : '－' }}</span>
-                      <div class="min-w-0"><div class="text-sm font-black text-slate-800 truncate">{{ entry.customerName }}</div><div class="text-[10px] font-bold text-slate-400 truncate">{{ entry.serviceName }} · {{ entry.paymentMethod }}</div></div>
+                      <div class="min-w-0"><div class="text-sm font-black text-slate-800 truncate">{{ entry.customerName }}</div><div class="text-[10px] font-bold text-slate-400 truncate">{{ entry.serviceName }} · {{ ledgerKindLabel(entry.kind) }}<span v-if="entry.note"> · {{ entry.note }}</span></div></div>
                     </div>
                     <div class="text-right shrink-0"><div class="text-sm font-black" :class="entry.type === 'in' ? 'text-emerald-700' : 'text-sky-700'">{{ entry.type === 'in' ? '+' : '-' }} NT$ {{ formatNumber(entry.amount) }}</div><div class="text-[9px] font-bold text-slate-400">異動後 {{ formatNumber(entry.balanceAfter) }}</div></div>
                   </div>
@@ -3062,10 +3065,14 @@
           orders: [],
           expenses: [],
           inventory: [],
+          customers: [],
+          prepaidLedger: [],
+          dataSchemaVersion: 2,
           crmNotes: {},
           
           selectedYear: curYear,
           selectedMonth: curMonth,
+          lastMonthlySelection: curMonth,
           
           showDataTools: false,
           showMobileTools: false,
@@ -3121,7 +3128,9 @@
           // Form fields
           newOrder: {
             date: todayStr,
+            customerId: '',
             customerName: '',
+            createNewCustomer: false,
             gender: '女',
             serviceName: '',
             amount: null,
@@ -3148,6 +3157,7 @@
           prepaidLedgerSearchQuery: '',
           prepaidLedgerFilter: 'all',
           ordersSearchQuery: '',
+          ordersCustomerHistoryId: null,
           ordersFilterCategory: 'All',  // D: 類別篩選
           ordersFilterPayment:  'All',  // D: 付款方式篩選
           
@@ -3187,10 +3197,39 @@
         monthOptions() {
           return ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
         },
+
+        customerMap() {
+          return Object.fromEntries(this.customers.map(customer => [customer.id, customer]));
+        },
+        customerOptions() {
+          return [...this.customers].sort((a, b) => String(a.name).localeCompare(String(b.name), 'zh-Hant'));
+        },
+        prepaidTotalsByCustomer() {
+          const totals = {};
+          this.prepaidLedger.forEach(entry => {
+            if (!entry.customerId) return;
+            if (!totals[entry.customerId]) totals[entry.customerId] = { balance: 0, topupNet: 0, debitNet: 0 };
+            const signedAmount = Number(entry.signedAmount) || 0;
+            totals[entry.customerId].balance += signedAmount;
+            if (entry.bucket === 'topup') totals[entry.customerId].topupNet += signedAmount;
+            if (entry.bucket === 'debit') totals[entry.customerId].debitNet += signedAmount;
+          });
+          Object.values(totals).forEach(total => {
+            total.prepaidIn = Math.max(0, total.topupNet);
+            total.prepaidOut = Math.max(0, -total.debitNet);
+          });
+          return totals;
+        },
         
         // 當期全部有效業績（不受搜尋與明細篩選影響）
         periodOrders() {
           return this.orders.filter(o => {
+            if (this.ordersCustomerHistoryId) {
+              return this.isOrderActive(o)
+                && o.customerId === this.ordersCustomerHistoryId
+                && o.customerName && o.customerName.trim()
+                && !this.isBlockedSlot(o.customerName);
+            }
             const [y, m] = o.date.split('-');
             const yearMatch  = y === this.selectedYear;
             const monthMatch = this.selectedMonth === 'All' || m === this.selectedMonth;
@@ -3529,12 +3568,13 @@
           const map = {};
           this.filteredOrders.forEach(o => {
             if (o.paymentMethod === '儲值進帳') return;
-            const name = o.customerName;
-            if (!map[name]) {
-              map[name] = { name, gender: o.gender, totalSpent: 0, count: 0 };
+            const customerId = o.customerId || o.customerName;
+            const name = this.customerMap[o.customerId]?.name || o.customerName;
+            if (!map[customerId]) {
+              map[customerId] = { id: o.customerId || null, name, gender: o.gender, totalSpent: 0, count: 0 };
             }
-            map[name].totalSpent += (Number(o.amount) || 0);
-            map[name].count += 1;
+            map[customerId].totalSpent += (Number(o.amount) || 0);
+            map[customerId].count += 1;
           });
 
           return Object.values(map)
@@ -3612,72 +3652,80 @@
         crmList() {
           const map = {};
           const today = new Date(new Date().toLocaleDateString('sv-SE') + 'T00:00:00');
-          
-          // First pass: aggregate all historical visits, consumption, prepaid amounts, and service history
+
+          this.customers.forEach(customer => {
+            map[customer.id] = {
+              id: customer.id,
+              name: customer.name,
+              gender: customer.gender || '女',
+              count: 0,
+              totalSpent: 0,
+              lastDate: '',
+              firstDate: '',
+              serviceMap: {},
+              recentOrders: []
+            };
+          });
+
+          // Customer ID 是 CRM 主鍵；姓名只負責顯示，不再決定顧客身分。
           this.orders.forEach(o => {
             if (!this.isOrderActive(o)) return;
-            const name = o.customerName;
-            if (!name || !name.trim()) return;
-            if (this.isBlockedSlot(name)) return;
-            if (!map[name]) {
-              map[name] = {
-                name,
-                gender: o.gender,
+            if (!o.customerId || !o.customerName || this.isBlockedSlot(o.customerName)) return;
+            const customer = this.customerMap[o.customerId];
+            if (!map[o.customerId]) {
+              map[o.customerId] = {
+                id: o.customerId,
+                name: customer?.name || o.customerName,
+                gender: customer?.gender || o.gender || '女',
                 count: 0,
                 totalSpent: 0,
-                prepaidIn: 0,
-                prepaidOut: 0,
-                lastDate: o.date,
-                firstDate: o.date,
+                lastDate: '',
+                firstDate: '',
                 serviceMap: {},
                 recentOrders: []
               };
             }
 
-            if (o.date > map[name].lastDate) map[name].lastDate = o.date;
-            if (o.date < map[name].firstDate) map[name].firstDate = o.date;
-            if (o.gender) map[name].gender = o.gender;
+            const record = map[o.customerId];
+            if (!record.lastDate || o.date > record.lastDate) record.lastDate = o.date;
+            if (!record.firstDate || o.date < record.firstDate) record.firstDate = o.date;
+            if (o.gender) record.gender = o.gender;
 
-            if (o.paymentMethod === '儲值進帳') {
-              map[name].prepaidIn += (Number(o.amount) || 0);
-            } else {
+            if (o.paymentMethod !== '儲值進帳') {
               const amount = Number(o.amount) || 0;
               const serviceName = o.serviceName || '未填服務';
-              map[name].totalSpent += amount;
-              map[name].count += 1;
-              map[name].serviceMap[serviceName] = (map[name].serviceMap[serviceName] || 0) + 1;
-              map[name].recentOrders.push({
+              record.totalSpent += amount;
+              record.count += 1;
+              record.serviceMap[serviceName] = (record.serviceMap[serviceName] || 0) + 1;
+              record.recentOrders.push({
                 id: o.id,
                 date: o.date,
                 serviceName,
                 amount,
                 paymentMethod: o.paymentMethod
               });
-              if (o.paymentMethod === '儲值扣款') {
-                map[name].prepaidOut += amount;
-              } else if (o.paymentMethod === '現金＋儲值扣款') {
-                map[name].prepaidOut += this.getMixedPrepaidAmount(o);
-              }
             }
           });
 
           const ranked = Object.values(map).sort((a, b) => b.totalSpent - a.totalSpent);
           
           return ranked.map((cust, index) => {
-            const prepaidBalance = cust.prepaidIn - cust.prepaidOut;
+            const prepaidTotals = this.prepaidTotalsByCustomer[cust.id] || { balance: 0, prepaidIn: 0, prepaidOut: 0 };
+            const prepaidBalance = prepaidTotals.balance;
             const recentOrders = [...cust.recentOrders].sort((a, b) => b.date.localeCompare(a.date));
             const primaryService = Object.entries(cust.serviceMap).sort((a, b) => b[1] - a[1])[0]?.[0] || '尚無服務';
             const lastService = recentOrders[0]?.serviceName || '';
             const avgTicket = cust.count > 0 ? Math.round(cust.totalSpent / cust.count) : 0;
             const lastDateObj = cust.lastDate ? new Date(cust.lastDate + 'T00:00:00') : today;
             const daysSinceLastVisit = Math.max(0, Math.floor((today - lastDateObj) / 86400000));
-            const hasFormula = !!(this.crmNotes[cust.name] && this.crmNotes[cust.name].trim());
-            const formula = this.crmFormulas[cust.name] || {};
-            const hasStructuredFormula = Object.values(formula).some(value => typeof value === 'string' && value.trim());
+            const hasFormula = !!(this.crmNotes[cust.id] && this.crmNotes[cust.id].trim());
+            const formula = this.crmFormulas[cust.id] || {};
+            const hasStructuredFormula = ['color', 'perm', 'hair', 'preference', 'caution']
+              .some(key => typeof formula[key] === 'string' && formula[key].trim());
             const revisitDays = /染|燙|特殊色/.test(primaryService) ? 70 : /剪/.test(primaryService) ? 45 : 60;
             const followupDue = daysSinceLastVisit >= revisitDays;
-            const prepaidUsedPercent = cust.prepaidIn > 0
-              ? Math.min(100, Math.round((cust.prepaidOut / cust.prepaidIn) * 100))
+            const prepaidUsedPercent = prepaidTotals.prepaidIn > 0
+              ? Math.min(100, Math.round((prepaidTotals.prepaidOut / prepaidTotals.prepaidIn) * 100))
               : 0;
 
             let statusLabel = '新客';
@@ -3685,7 +3733,7 @@
             if (prepaidBalance < 0) {
               statusLabel = '儲值超扣';
               statusClass = 'bg-rose-50 text-rose-600 border-rose-200';
-            } else if (cust.prepaidIn > 0 && prepaidBalance <= 0) {
+            } else if (prepaidTotals.prepaidIn > 0 && prepaidBalance <= 0) {
               statusLabel = '需儲值';
               statusClass = 'bg-amber-50 text-amber-700 border-amber-200';
             } else if (daysSinceLastVisit >= 90) {
@@ -3702,6 +3750,8 @@
             return {
               ...cust,
               rank: index,
+              prepaidIn: prepaidTotals.prepaidIn,
+              prepaidOut: prepaidTotals.prepaidOut,
               prepaidBalance,
               avgTicket,
               primaryService,
@@ -3723,9 +3773,9 @@
         filteredCrmList() {
           const query = this.crmSearchQuery.trim().toLowerCase();
           let list = this.crmList.filter(c => {
-            const notes = this.crmNotes[c.name] || '';
-            const formulaText = Object.values(this.crmFormulas[c.name] || {}).join(' ');
-            const haystack = `${c.name} ${c.gender || ''} ${c.primaryService} ${c.lastService} ${notes} ${formulaText}`.toLowerCase();
+            const notes = this.crmNotes[c.id] || '';
+            const formulaText = Object.values(this.crmFormulas[c.id] || {}).join(' ');
+            const haystack = `${c.name} ${this.shortCustomerId(c.id)} ${c.gender || ''} ${c.primaryService} ${c.lastService} ${notes} ${formulaText}`.toLowerCase();
             const queryMatch = !query || haystack.includes(query);
 
             let filterMatch = true;
@@ -3751,28 +3801,21 @@
 
         prepaidLedgerEntries() {
           const balances = {};
-          return this.orders
-            .map((order, index) => ({ order, index }))
-            .filter(({ order }) => this.isOrderActive(order) && order.customerName && !this.isBlockedSlot(order.customerName))
-            .filter(({ order }) => ['儲值進帳', '儲值扣款', '現金＋儲值扣款'].includes(order.paymentMethod))
-            .sort((a, b) => String(a.order.date).localeCompare(String(b.order.date)) || a.index - b.index)
-            .map(({ order: o }) => {
-              const isTopup = o.paymentMethod === '儲值進帳';
-              const amount = isTopup
-                ? (Number(o.amount) || 0)
-                : o.paymentMethod === '現金＋儲值扣款'
-                  ? this.getMixedPrepaidAmount(o)
-                  : (Number(o.amount) || 0);
-              balances[o.customerName] = (balances[o.customerName] || 0) + (isTopup ? amount : -amount);
+          return this.prepaidLedger
+            .map((entry, index) => ({ entry, index }))
+            .sort((a, b) => String(a.entry.date).localeCompare(String(b.entry.date))
+              || String(a.entry.createdAt).localeCompare(String(b.entry.createdAt))
+              || a.index - b.index)
+            .map(({ entry }) => {
+              const signedAmount = Number(entry.signedAmount) || 0;
+              balances[entry.customerId] = (balances[entry.customerId] || 0) + signedAmount;
+              const customer = this.customerMap[entry.customerId];
               return {
-                id: o.id,
-                date: o.date,
-                customerName: o.customerName,
-                serviceName: isTopup ? '儲值進帳' : (o.serviceName || '服務扣款'),
-                paymentMethod: o.paymentMethod,
-                type: isTopup ? 'in' : 'out',
-                amount,
-                balanceAfter: balances[o.customerName]
+                ...entry,
+                customerName: customer?.name || entry.customerNameSnapshot || '未知顧客',
+                type: signedAmount >= 0 ? 'in' : 'out',
+                amount: Math.abs(signedAmount),
+                balanceAfter: balances[entry.customerId]
               };
             })
             .reverse();
@@ -3798,12 +3841,12 @@
 
         prepaidLedgerSummary() {
           const entries = this.prepaidLedgerEntries;
-          const totalIn = entries.filter(e => e.type === 'in').reduce((sum, e) => sum + e.amount, 0);
-          const totalOut = entries.filter(e => e.type === 'out').reduce((sum, e) => sum + e.amount, 0);
+          const totalIn = Math.max(0, entries.filter(e => e.bucket === 'topup').reduce((sum, e) => sum + (Number(e.signedAmount) || 0), 0));
+          const totalOut = Math.max(0, -entries.filter(e => e.bucket === 'debit').reduce((sum, e) => sum + (Number(e.signedAmount) || 0), 0));
           return {
             totalIn,
             totalOut,
-            balance: totalIn - totalOut,
+            balance: entries.reduce((sum, entry) => sum + (Number(entry.signedAmount) || 0), 0),
             customers: this.crmList.filter(c => c.prepaidIn > 0 || c.prepaidOut > 0).length
           };
         },
@@ -4120,6 +4163,13 @@
         }
       },
       watch: {
+        'newOrder.customerName'(newVal) {
+          if (!this.newOrder.customerId) return;
+          const selected = this.customerMap[this.newOrder.customerId];
+          if (!selected || this.normalizeCustomerName(selected.name) !== this.normalizeCustomerName(newVal)) {
+            this.newOrder.customerId = '';
+          }
+        },
         'newOrder.serviceName'(newVal) {
           if (newVal) {
             const price = this.getServicePrice(newVal);
@@ -4165,26 +4215,287 @@
         }
       },
       methods: {
+        generateStableId(prefix) {
+          const randomPart = window.crypto && crypto.randomUUID
+            ? crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+            : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+          return `${prefix}_${randomPart}`;
+        },
+        normalizeCustomerName(name) {
+          return String(name || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('zh-TW');
+        },
+        shortCustomerId(customerId) {
+          return String(customerId || '').replace(/^cust_/, '').slice(-6).toUpperCase();
+        },
+        findCustomerByName(name) {
+          const normalized = this.normalizeCustomerName(name);
+          if (!normalized) return null;
+          return this.customers.find(customer => this.normalizeCustomerName(customer.name) === normalized) || null;
+        },
+        findOrCreateCustomer(name, gender = '女', preferredId = null, forceNew = false) {
+          const cleanName = String(name || '').trim().replace(/\s+/g, ' ');
+          if (!cleanName) return null;
+          if (preferredId && this.customerMap[preferredId]) return this.customerMap[preferredId];
+          const existing = forceNew ? null : this.findCustomerByName(cleanName);
+          if (existing) {
+            if (!existing.gender && gender) existing.gender = gender;
+            return existing;
+          }
+          const now = new Date().toISOString();
+          const customer = {
+            id: preferredId || this.generateStableId('cust'),
+            name: cleanName,
+            gender: gender || '女',
+            createdAt: now,
+            updatedAt: now
+          };
+          this.customers.push(customer);
+          return customer;
+        },
+        selectNewOrderCustomer() {
+          const customer = this.customerMap[this.newOrder.customerId];
+          if (!customer) return;
+          this.newOrder.createNewCustomer = false;
+          this.newOrder.customerName = customer.name;
+          this.newOrder.gender = customer.gender || '女';
+        },
+        onOrderCustomerIdChanged(order) {
+          const customer = this.customerMap[order.customerId];
+          if (!customer) return;
+          order.customerName = customer.name;
+          order.gender = customer.gender || order.gender || '女';
+          this.saveOrders();
+        },
+        migrateCustomerIdentity() {
+          const rawCustomers = Array.isArray(this.customers) ? this.customers : [];
+          const ids = new Set();
+          this.customers = rawCustomers
+            .filter(customer => customer && customer.name)
+            .map(customer => {
+              let id = String(customer.id || '');
+              if (!id || ids.has(id)) id = this.generateStableId('cust');
+              ids.add(id);
+              return {
+                id,
+                name: String(customer.name).trim(),
+                gender: customer.gender || '女',
+                createdAt: customer.createdAt || new Date().toISOString(),
+                updatedAt: customer.updatedAt || customer.createdAt || new Date().toISOString()
+              };
+            });
+
+          this.orders.forEach(order => {
+            if (!order || !order.customerName || this.isBlockedSlot(order.customerName)) return;
+            let customer = order.customerId ? this.customers.find(item => item.id === order.customerId) : null;
+            if (!customer) customer = this.findOrCreateCustomer(order.customerName, order.gender);
+            if (!customer) return;
+            order.customerId = customer.id;
+            order.customerName = customer.name;
+          });
+
+          const migrateKeyedRecords = source => {
+            const migrated = {};
+            Object.entries(source && typeof source === 'object' ? source : {}).forEach(([key, value]) => {
+              const existingCustomer = this.customers.find(customer => customer.id === key);
+              const customer = existingCustomer || this.findOrCreateCustomer(key, '女');
+              if (customer && migrated[customer.id] === undefined) migrated[customer.id] = value;
+            });
+            return migrated;
+          };
+          this.crmNotes = migrateKeyedRecords(this.crmNotes);
+          this.crmFormulas = migrateKeyedRecords(this.crmFormulas);
+
+          this.prepaidLedger = (Array.isArray(this.prepaidLedger) ? this.prepaidLedger : [])
+            .filter(entry => entry && entry.customerId)
+            .map(entry => {
+              const signedAmount = Number(entry.signedAmount ?? (entry.type === 'in' ? entry.amount : -entry.amount)) || 0;
+              return {
+                ...entry,
+                id: entry.id || this.generateStableId('txn'),
+                signedAmount,
+                amount: Math.abs(signedAmount),
+                kind: entry.kind || (signedAmount >= 0 ? 'topup' : 'debit'),
+                bucket: entry.bucket || (entry.kind === 'topup' ? 'topup' : entry.kind === 'debit' ? 'debit' : signedAmount >= 0 ? 'topup' : 'debit'),
+                createdAt: entry.createdAt || new Date().toISOString()
+              };
+            });
+        },
+        appendPrepaidLedgerEntry({ customerId, signedAmount, kind, bucket, date, sourceOrderId, serviceName, paymentMethod, note }) {
+          const amount = Math.round(Number(signedAmount) || 0);
+          if (!customerId || !amount) return null;
+          const customer = this.customerMap[customerId];
+          const entry = {
+            id: this.generateStableId('txn'),
+            customerId,
+            customerNameSnapshot: customer ? customer.name : '未知顧客',
+            signedAmount: amount,
+            amount: Math.abs(amount),
+            kind: kind || (amount > 0 ? 'topup' : 'debit'),
+            bucket: bucket || (amount > 0 ? 'topup' : 'debit'),
+            date: date || new Date().toLocaleDateString('sv-SE'),
+            sourceOrderId: sourceOrderId || null,
+            serviceName: serviceName || (amount > 0 ? '儲值進帳' : '儲值扣款'),
+            paymentMethod: paymentMethod || (amount > 0 ? '儲值進帳' : '儲值扣款'),
+            note: note || '',
+            createdAt: new Date().toISOString()
+          };
+          this.prepaidLedger.push(entry);
+          return entry;
+        },
+        getOrderPrepaidTarget(order) {
+          if (!order || !this.isOrderActive(order) || !order.customerId) return 0;
+          const amount = Math.max(0, Number(order.amount) || 0);
+          if (order.paymentMethod === '儲值進帳') return amount;
+          if (order.paymentMethod === '儲值扣款') return -amount;
+          if (order.paymentMethod === '現金＋儲值扣款') return -this.getMixedPrepaidAmount(order);
+          return 0;
+        },
+        reconcilePrepaidLedger() {
+          const today = new Date().toLocaleDateString('sv-SE');
+          const orderIds = new Set(this.orders.filter(Boolean).map(order => String(order.id || '')));
+          const totals = new Map();
+          const entriesByOrder = new Map();
+
+          this.prepaidLedger.forEach(entry => {
+            if (!entry.sourceOrderId || !entry.customerId) return;
+            const orderId = String(entry.sourceOrderId);
+            const key = `${orderId}::${entry.customerId}`;
+            totals.set(key, (totals.get(key) || 0) + (Number(entry.signedAmount) || 0));
+            if (!entriesByOrder.has(orderId)) entriesByOrder.set(orderId, []);
+            entriesByOrder.get(orderId).push(entry);
+          });
+
+          const appendAndTrack = payload => {
+            const entry = this.appendPrepaidLedgerEntry(payload);
+            if (!entry || !entry.sourceOrderId) return;
+            const orderId = String(entry.sourceOrderId);
+            const key = `${orderId}::${entry.customerId}`;
+            totals.set(key, (totals.get(key) || 0) + entry.signedAmount);
+            if (!entriesByOrder.has(orderId)) entriesByOrder.set(orderId, []);
+            entriesByOrder.get(orderId).push(entry);
+          };
+
+          this.orders.forEach(order => {
+            if (!order || !order.id || !order.customerName || this.isBlockedSlot(order.customerName)) return;
+            let customer = order.customerId ? this.customerMap[order.customerId] : null;
+            if (!customer) customer = this.findOrCreateCustomer(order.customerName, order.gender);
+            if (!customer) return;
+            order.customerId = customer.id;
+            order.customerName = customer.name;
+
+            const orderId = String(order.id);
+            const target = this.getOrderPrepaidTarget(order);
+            const relatedEntries = entriesByOrder.get(orderId) || [];
+            const relatedCustomerIds = new Set(relatedEntries.map(entry => entry.customerId));
+
+            relatedCustomerIds.forEach(customerId => {
+              if (customerId === order.customerId) return;
+              const key = `${orderId}::${customerId}`;
+              const existingTotal = totals.get(key) || 0;
+              if (!existingTotal) return;
+              const latestForCustomer = [...relatedEntries].reverse().find(entry => entry.customerId === customerId);
+              appendAndTrack({
+                customerId,
+                signedAmount: -existingTotal,
+                kind: 'reversal',
+                bucket: latestForCustomer?.bucket || (existingTotal > 0 ? 'topup' : 'debit'),
+                date: today,
+                sourceOrderId: orderId,
+                serviceName: order.serviceName,
+                paymentMethod: order.paymentMethod,
+                note: '訂單改綁其他顧客，原顧客帳務沖銷'
+              });
+            });
+
+            const targetKey = `${orderId}::${order.customerId}`;
+            const currentTotal = totals.get(targetKey) || 0;
+            const targetEntries = relatedEntries.filter(entry => entry.customerId === order.customerId);
+            const latestTargetEntry = [...targetEntries].reverse()[0];
+            const targetBucket = target > 0 ? 'topup' : target < 0 ? 'debit' : (latestTargetEntry?.bucket || (currentTotal > 0 ? 'topup' : 'debit'));
+
+            if (currentTotal && target && Math.sign(currentTotal) !== Math.sign(target)) {
+              appendAndTrack({
+                customerId: order.customerId,
+                signedAmount: -currentTotal,
+                kind: 'reversal',
+                bucket: latestTargetEntry?.bucket || (currentTotal > 0 ? 'topup' : 'debit'),
+                date: today,
+                sourceOrderId: orderId,
+                serviceName: order.serviceName,
+                paymentMethod: order.paymentMethod,
+                note: '付款類型改變，先沖銷原儲值交易'
+              });
+              appendAndTrack({
+                customerId: order.customerId,
+                signedAmount: target,
+                kind: target > 0 ? 'topup' : 'debit',
+                bucket: target > 0 ? 'topup' : 'debit',
+                date: today,
+                sourceOrderId: orderId,
+                serviceName: order.serviceName,
+                paymentMethod: order.paymentMethod,
+                note: '付款類型改變，建立新儲值交易'
+              });
+              return;
+            }
+
+            const difference = target - currentTotal;
+            if (!difference) return;
+            const isInitial = targetEntries.length === 0;
+            appendAndTrack({
+              customerId: order.customerId,
+              signedAmount: difference,
+              kind: isInitial ? (target > 0 ? 'topup' : 'debit') : (target === 0 ? 'reversal' : 'adjustment'),
+              bucket: targetBucket,
+              date: isInitial ? order.date : today,
+              sourceOrderId: orderId,
+              serviceName: order.serviceName,
+              paymentMethod: order.paymentMethod,
+              note: isInitial ? '由訂單建立' : '訂單內容異動，自動追加調整'
+            });
+          });
+
+          entriesByOrder.forEach((entries, orderId) => {
+            if (orderIds.has(orderId)) return;
+            const customerIds = new Set(entries.map(entry => entry.customerId));
+            customerIds.forEach(customerId => {
+              const key = `${orderId}::${customerId}`;
+              const existingTotal = totals.get(key) || 0;
+              if (!existingTotal) return;
+              const latest = [...entries].reverse().find(entry => entry.customerId === customerId) || {};
+              appendAndTrack({
+                customerId,
+                signedAmount: -existingTotal,
+                kind: 'reversal',
+                bucket: latest.bucket || (existingTotal > 0 ? 'topup' : 'debit'),
+                date: today,
+                sourceOrderId: orderId,
+                serviceName: latest.serviceName,
+                paymentMethod: latest.paymentMethod,
+                note: '原訂單已刪除，自動追加沖銷'
+              });
+            });
+          });
+        },
+        saveCustomerData() {
+          localStorage.setItem('momo_customers', JSON.stringify(this.customers));
+          localStorage.setItem('momo_prepaidLedger', JSON.stringify(this.prepaidLedger));
+          localStorage.setItem('momo_data_schema_version', String(this.dataSchemaVersion));
+        },
         // LocalStorage loading
         loadFromLocalStorage() {
-          const savedOrders = localStorage.getItem('momo_orders');
-          const savedExpenses = localStorage.getItem('momo_expenses');
-          const savedInventory = localStorage.getItem('momo_inventory');
-          const savedCrmNotes = localStorage.getItem('momo_crmNotes');
-          const savedCrmFormulas = localStorage.getItem('momo_crmFormulas');
-          const savedCloseoutRecords = localStorage.getItem('momo_closeoutRecords');
-
-          if (savedOrders) this.orders = JSON.parse(savedOrders);
-          else this.orders = defaultOrders;
-
-          if (savedExpenses) this.expenses = JSON.parse(savedExpenses);
-          else this.expenses = defaultExpenses;
-
-          if (savedInventory) this.inventory = JSON.parse(savedInventory);
-          else this.inventory = defaultInventory;
-
-          if (savedCrmNotes) this.crmNotes = JSON.parse(savedCrmNotes);
-          else this.crmNotes = defaultCrmNotes;
+          const clone = value => JSON.parse(JSON.stringify(value));
+          const parsedOrders = safeParse(localStorage.getItem('momo_orders'), clone(defaultOrders));
+          const parsedExpenses = safeParse(localStorage.getItem('momo_expenses'), clone(defaultExpenses));
+          const parsedInventory = safeParse(localStorage.getItem('momo_inventory'), clone(defaultInventory));
+          this.orders = Array.isArray(parsedOrders) ? parsedOrders : clone(defaultOrders);
+          this.expenses = Array.isArray(parsedExpenses) ? parsedExpenses : clone(defaultExpenses);
+          this.inventory = Array.isArray(parsedInventory) ? parsedInventory : clone(defaultInventory);
+          this.customers = safeParse(localStorage.getItem('momo_customers'), []);
+          this.prepaidLedger = safeParse(localStorage.getItem('momo_prepaidLedger'), []);
+          this.crmNotes = safeParse(localStorage.getItem('momo_crmNotes'), clone(defaultCrmNotes));
+          this.crmFormulas = safeParse(localStorage.getItem('momo_crmFormulas'), {});
+          this.closeoutRecords = safeParse(localStorage.getItem('momo_closeoutRecords'), {});
 
           // 一次性移除舊版內建範例；只比對固定範例 ID／原始內容，不碰正式資料
           if (localStorage.getItem('momo_examples_removed_v1') !== '1') {
@@ -4203,24 +4514,21 @@
               if (this.crmNotes[name] === note) delete this.crmNotes[name];
             });
 
-            this.saveOrders();
-            this.saveExpenses();
-            localStorage.setItem('momo_inventory', JSON.stringify(this.inventory));
-            localStorage.setItem('momo_crmNotes', JSON.stringify(this.crmNotes));
             localStorage.setItem('momo_examples_removed_v1', '1');
           }
 
-          this.crmFormulas = safeParse(savedCrmFormulas, {});
-          this.closeoutRecords = safeParse(savedCloseoutRecords, {});
+          this.migrateCustomerIdentity();
+          this.reconcilePrepaidLedger();
+
           const todayRecord = this.closeoutRecords[new Date().toLocaleDateString('sv-SE')];
           if (todayRecord) {
             this.closeoutCashCount = todayRecord.countedCash;
             this.closeoutNote = todayRecord.note || '';
           }
 
-          const savedServicesConfig = localStorage.getItem('momo_servicesConfig');
-          if (savedServicesConfig) this.servicesConfig = JSON.parse(savedServicesConfig);
-          else this.servicesConfig = JSON.parse(JSON.stringify(defaultServicesConfig));
+          const savedServicesConfig = safeParse(localStorage.getItem('momo_servicesConfig'), clone(defaultServicesConfig));
+          this.servicesConfig = Array.isArray(savedServicesConfig) ? savedServicesConfig : clone(defaultServicesConfig);
+          this.saveToLocalStorage();
         },
 
         // LocalStorage saving (legacy fallback for compatibility)
@@ -4235,7 +4543,9 @@
         },
         saveOrders() {
           try {
+            this.reconcilePrepaidLedger();
             localStorage.setItem('momo_orders', JSON.stringify(this.orders));
+            this.saveCustomerData();
             const used = new Blob(Object.values(localStorage)).size;
             if (used > 4 * 1024 * 1024) { // 超過 4MB 警告
               this.showToast('⚠️ 儲存空間已使用超過 4MB，建議匯出備份後清理舊資料', 'error', 8000);
@@ -4491,6 +4801,35 @@
         },
 
         // API Sync & Data washing
+        shiftMonth(direction) {
+          this.ordersCustomerHistoryId = null;
+          const step = direction < 0 ? -1 : 1;
+          if (this.selectedMonth === 'All') {
+            this.selectedYear = String(Number(this.selectedYear) + step);
+            return;
+          }
+          let year = Number(this.selectedYear);
+          let month = Number(this.selectedMonth) + step;
+          if (month < 1) {
+            month = 12;
+            year -= 1;
+          } else if (month > 12) {
+            month = 1;
+            year += 1;
+          }
+          this.selectedYear = String(year);
+          this.selectedMonth = String(month).padStart(2, '0');
+          this.lastMonthlySelection = this.selectedMonth;
+        },
+        toggleAnnualView() {
+          this.ordersCustomerHistoryId = null;
+          if (this.selectedMonth === 'All') {
+            this.selectedMonth = this.lastMonthlySelection || new Date().toLocaleDateString('sv-SE').slice(5, 7);
+          } else {
+            this.lastMonthlySelection = this.selectedMonth;
+            this.selectedMonth = 'All';
+          }
+        },
         async syncFromApi() {
           // 全年模式下提示用戶選擇月份
           if (this.selectedMonth === 'All') {
@@ -4622,6 +4961,12 @@
             if (!sourceEventId) warningCount++;
             if (amount <= 0 || !['現金', '儲值扣款', '現金＋儲值扣款', '儲值進帳'].includes(paymentMethod)) warningCount++;
             if (paymentMethod === '現金＋儲值扣款' && (cashAmount <= 0 || cashAmount >= amount)) warningCount++;
+            const syncedCustomer = this.findOrCreateCustomer(customerName, gender);
+            if (!syncedCustomer) {
+              skippedCount++;
+              return;
+            }
+            const customerId = syncedCustomer.id;
 
             // 舊版後端尚未回傳 Event ID 時，維持原本去重行為，避免部署過渡期產生重複
             if (!sourceEventId) {
@@ -4633,14 +4978,16 @@
                 && order.serviceName === serviceName
               );
               if (legacyExisting) {
+                if (!legacyExisting.customerId) legacyExisting.customerId = customerId;
                 unchangedCount++;
                 return;
               }
               this.orders.push({
                 id: 'sync_' + Math.random().toString(36).substr(2, 9),
                 date,
-                customerName,
-                gender,
+                customerId,
+                customerName: syncedCustomer.name,
+                gender: syncedCustomer.gender || gender,
                 serviceName,
                 amount,
                 paymentMethod,
@@ -4670,8 +5017,9 @@
 
             const syncedFields = {
               date,
-              customerName,
-              gender,
+              customerId,
+              customerName: syncedCustomer.name,
+              gender: syncedCustomer.gender || gender,
               serviceName,
               amount,
               paymentMethod,
@@ -4692,7 +5040,7 @@
               if (sourceEventId) bySourceEventId.set(sourceEventId, newOrder);
               mergedCount++;
             } else {
-              const changed = ['date', 'customerName', 'gender', 'serviceName', 'amount', 'paymentMethod', 'cashAmount', 'syncStatus']
+              const changed = ['date', 'customerId', 'customerName', 'gender', 'serviceName', 'amount', 'paymentMethod', 'cashAmount', 'syncStatus']
                 .some(key => existing[key] !== syncedFields[key]);
               Object.assign(existing, syncedFields);
               if (sourceEventId) bySourceEventId.set(sourceEventId, existing);
@@ -4727,21 +5075,25 @@
         },
 
         // Navigate from dashboard customer rank to CRM profile
-        goToCustomerCRM(name) {
+        goToCustomerCRM(customerRef) {
+          const customer = this.customerMap[customerRef] || this.findCustomerByName(customerRef);
+          const name = customer?.name || String(customerRef || '');
           this.activeTab = 'crm';
           this.crmViewMode = 'customers';
           this.crmFilterMode = 'all';
           this.crmSortMode = 'lastDate';
           this.crmSearchQuery = name;
-          this.expandedCrmCustomerName = name;
+          this.expandedCrmCustomerName = customer?.id || null;
           window.scrollTo({ top: 0, behavior: 'smooth' });
         },
-        toggleCrmCustomer(name) {
-          this.expandedCrmCustomerName = this.expandedCrmCustomerName === name ? null : name;
+        toggleCrmCustomer(customerId) {
+          this.expandedCrmCustomerName = this.expandedCrmCustomerName === customerId ? null : customerId;
         },
         startOrderForCustomer(cust) {
           this.newOrder.date = new Date().toLocaleDateString('sv-SE');
+          this.newOrder.customerId = cust.id;
           this.newOrder.customerName = cust.name;
+          this.newOrder.createNewCustomer = false;
           this.newOrder.gender = cust.gender || '女';
           this.newOrder.serviceName = cust.lastService || '';
           this.newOrder.amount = null;
@@ -4757,7 +5109,9 @@
         },
         startPrepaidForCustomer(cust) {
           this.newOrder.date = new Date().toLocaleDateString('sv-SE');
+          this.newOrder.customerId = cust.id;
           this.newOrder.customerName = cust.name;
+          this.newOrder.createNewCustomer = false;
           this.newOrder.gender = cust.gender || '女';
           this.newOrder.serviceName = '儲值進帳';
           this.newOrder.amount = null;
@@ -4771,12 +5125,19 @@
             if (this.$refs.customerNameInput) this.$refs.customerNameInput.focus();
           });
         },
-        openCustomerOrders(name) {
+        openCustomerOrders(customerRef) {
+          const customer = this.customerMap[customerRef] || this.findCustomerByName(customerRef);
+          const name = customer?.name || String(customerRef || '');
+          this.ordersCustomerHistoryId = customer?.id || null;
           this.ordersSearchQuery = name;
           this.ordersFilterCategory = 'All';
           this.ordersFilterPayment = 'All';
           this.activeTab = 'orders';
           window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        closeCustomerHistory() {
+          this.ordersCustomerHistoryId = null;
+          this.ordersSearchQuery = '';
         },
 
         // Dictionary Modal Methods
@@ -4817,6 +5178,7 @@
           this.selectedYear = String(y);
         },
         openReportMonth(month) {
+          this.ordersCustomerHistoryId = null;
           this.selectedMonth = String(month).padStart(2, '0');
           this.activeTab = 'orders';
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4905,12 +5267,24 @@
             this.showToast('混合付款的現金金額必須大於 0，且小於消費總額', 'error', 5000);
             return;
           }
+          const selectedCustomer = this.customerMap[this.newOrder.customerId];
+          const customer = selectedCustomer || this.findOrCreateCustomer(
+            this.newOrder.customerName,
+            this.newOrder.gender,
+            null,
+            this.newOrder.createNewCustomer
+          );
+          if (!customer) {
+            this.showToast('請輸入有效的顧客姓名', 'error');
+            return;
+          }
           const id = 'ord_' + Math.random().toString(36).substr(2, 9);
           this.orders.push({
             id,
             date: this.newOrder.date,
-            customerName: this.newOrder.customerName.trim(),
-            gender: this.newOrder.gender,
+            customerId: customer.id,
+            customerName: customer.name,
+            gender: customer.gender || this.newOrder.gender,
             serviceName: this.newOrder.serviceName.trim(),
             amount: totalAmount,
             paymentMethod: this.newOrder.paymentMethod,
@@ -4921,9 +5295,12 @@
           this.showToast('🍰 業績新增成功！');
 
           // Reset inputs except date
+          this.newOrder.customerId = '';
           this.newOrder.customerName = '';
+          this.newOrder.createNewCustomer = false;
           this.newOrder.serviceName = '';
           this.newOrder.amount = null;
+          this.newOrder.paymentMethod = '現金';
           this.newOrder.cashAmount = null;
           
           // 新增完成後：手機收起表單，桌機切換到業績明細確認
@@ -5040,9 +5417,12 @@
         // --- Data Tools Actions ---
         exportBackup() {
           const data = {
+            schemaVersion: this.dataSchemaVersion,
             momo_orders: this.orders,
             momo_expenses: this.expenses,
             momo_inventory: this.inventory,
+            momo_customers: this.customers,
+            momo_prepaidLedger: this.prepaidLedger,
             momo_crmNotes: this.crmNotes,
             momo_crmFormulas: this.crmFormulas,
             momo_closeoutRecords: this.closeoutRecords,
@@ -5071,9 +5451,13 @@
                 this.orders = data.momo_orders;
                 this.expenses = data.momo_expenses;
                 this.inventory = data.momo_inventory;
+                this.customers = Array.isArray(data.momo_customers) ? data.momo_customers : [];
+                this.prepaidLedger = Array.isArray(data.momo_prepaidLedger) ? data.momo_prepaidLedger : [];
                 this.crmNotes = data.momo_crmNotes;
                 this.crmFormulas = data.momo_crmFormulas || {};
                 this.closeoutRecords = data.momo_closeoutRecords || {};
+                this.migrateCustomerIdentity();
+                this.reconcilePrepaidLedger();
                 if (data.momo_servicesConfig) {
                   this.servicesConfig = data.momo_servicesConfig;
                   this.saveToLocalStorage();
@@ -5117,10 +5501,10 @@
           this.showDataTools = false;
         },
         exportCrmCSV() {
-          const headers = ['顧客姓名', '性別', '來訪次數', '累計消費', '平均客單', '最後來訪', '距今天數', '偏好服務', '儲值餘額', '回訪狀態', '染髮配方', '燙髮藥水', '髮況', '喜好', '注意事項'];
+          const headers = ['顧客ID', '顧客姓名', '性別', '來訪次數', '累計消費', '平均客單', '最後來訪', '距今天數', '偏好服務', '儲值餘額', '回訪狀態', '染髮配方', '燙髮藥水', '髮況', '喜好', '注意事項'];
           const rows = this.crmList.map(c => {
-            const f = this.crmFormulas[c.name] || {};
-            return [c.name, c.gender, c.count, c.totalSpent, c.avgTicket, c.lastDate, c.daysSinceLastVisit, c.primaryService, c.prepaidBalance, c.followupDue ? '需要回訪' : '正常', f.color || '', f.perm || '', f.hair || '', f.preference || '', f.caution || ''];
+            const f = this.crmFormulas[c.id] || {};
+            return [c.id, c.name, c.gender, c.count, c.totalSpent, c.avgTicket, c.lastDate, c.daysSinceLastVisit, c.primaryService, c.prepaidBalance, c.followupDue ? '需要回訪' : '正常', f.color || '', f.perm || '', f.hair || '', f.preference || '', f.caution || ''];
           });
           this.downloadCSV(`MOMO顧客CRM_${new Date().toLocaleDateString('sv-SE')}.csv`, headers, rows);
           this.showToast('👥 CRM 顧客 CSV 已匯出');
@@ -5174,6 +5558,9 @@
             case '儲值進帳': return '➕';
             default: return '💰';
           }
+        },
+        ledgerKindLabel(kind) {
+          return ({ topup: '儲值進帳', debit: '服務扣款', adjustment: '帳務調整', reversal: '沖銷' })[kind] || '帳務異動';
         },
         paymentBadgeClass(method) {
           switch (method) {
