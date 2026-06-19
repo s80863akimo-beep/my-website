@@ -436,6 +436,30 @@
   </div>
 
   <div id="app" class="pb-28 flex flex-col min-height-screen" v-cloak>
+
+    <!-- Supabase owner login (only enforced after Render enables REQUIRE_AUTH) -->
+    <transition name="fade">
+      <div v-if="showAuthSheet" class="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-slate-900/45 sm:p-6"
+           @click="!authConfig.required && (showAuthSheet = false)">
+        <section class="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-white border border-orange-100 p-6 macaron-shadow-lg safe-pb" @click.stop>
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-macaron-peach-300 to-macaron-rose flex items-center justify-center text-2xl">🐾</div>
+              <h2 class="mt-4 text-xl font-black text-slate-800">登入摸摸頭營運總部</h2>
+              <p class="mt-1 text-xs font-bold text-slate-400">使用 Supabase Authentication 中建立的管理員帳號</p>
+            </div>
+            <button v-if="!authConfig.required" type="button" @click="showAuthSheet = false" class="w-10 h-10 rounded-full bg-slate-50 text-slate-500" aria-label="關閉登入">✕</button>
+          </div>
+          <form class="mt-5 space-y-3" @submit.prevent="signInWithSupabase">
+            <label class="block"><span class="block mb-1 text-[11px] font-black text-slate-500">Email</span><input v-model.trim="authForm.email" type="email" required autocomplete="username" class="w-full min-h-[46px] rounded-2xl border border-orange-100 px-4 text-sm font-semibold" placeholder="你的管理員 Email"></label>
+            <label class="block"><span class="block mb-1 text-[11px] font-black text-slate-500">密碼</span><input v-model="authForm.password" type="password" required autocomplete="current-password" class="w-full min-h-[46px] rounded-2xl border border-orange-100 px-4 text-sm font-semibold" placeholder="Supabase Auth 密碼"></label>
+            <p v-if="authError" class="rounded-xl bg-rose-50 border border-rose-100 px-3 py-2 text-xs font-bold text-rose-600">{{ authError }}</p>
+            <button type="submit" :disabled="authLoading" class="w-full min-h-[48px] rounded-2xl bg-gradient-to-r from-macaron-peach-400 to-macaron-rose text-white text-sm font-black disabled:opacity-50">{{ authLoading ? '驗證中…' : '登入' }}</button>
+          </form>
+          <p class="mt-3 text-[10px] font-bold text-slate-400">密碼只送往你的 Supabase 專案；本機僅保存登入權杖，不保存密碼。</p>
+        </section>
+      </div>
+    </transition>
     
     <!-- Top Nav / Header -->
     <header class="glass-panel relative sm:sticky top-0 z-40 macaron-shadow border-b border-orange-100/50 safe-pt py-2.5 sm:py-4 px-4 sm:px-6">
@@ -571,6 +595,9 @@
         </div>
       </div>
       <div class="desktop-status-row max-w-7xl mx-auto mt-1 flex justify-center sm:justify-end gap-2 text-[9px] font-black">
+        <button v-if="authConfig.configured" @click="authUser ? signOutSupabase() : (showAuthSheet = true)" class="px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
+          {{ authUser ? '🔐 ' + authUser.email + ' · 登出' : '🔓 登入雲端' }}
+        </button>
         <span class="px-2 py-0.5 rounded-full" :class="online ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'">
           {{ online ? '● 已連線' : '● 離線模式' }}
         </span>
@@ -597,6 +624,9 @@
           <div class="p-4 space-y-4">
             <section class="space-y-2">
               <div class="px-1 text-[10px] font-black text-slate-400">系統工具</div>
+              <button v-if="authConfig.configured" @click="showMobileTools = false; authUser ? signOutSupabase() : (showAuthSheet = true)" class="w-full min-h-[50px] px-4 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-between text-left">
+                <span class="text-sm font-black text-violet-700">{{ authUser ? '🔐 ' + authUser.email : '🔓 登入雲端' }}</span><span class="text-violet-300">{{ authUser ? '登出' : '›' }}</span>
+              </button>
               <button @click="showMobileTools = false; openServiceConfigModal()" class="w-full min-h-[50px] px-4 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-between text-left">
                 <span><span class="mr-2">⚙️</span><span class="text-sm font-black text-slate-700">服務定價與時長</span></span>
                 <span class="text-slate-300">›</span>
@@ -3077,6 +3107,22 @@
           showDataTools: false,
           showMobileTools: false,
           syncing: false,
+          apiBaseUrl: '',
+          authLoading: true,
+          authConfig: {
+            configured: false,
+            required: false,
+            supabaseUrl: '',
+            publishableKey: ''
+          },
+          authSession: safeParse(localStorage.getItem('momo_auth_session'), null),
+          authUser: null,
+          authError: '',
+          showAuthSheet: false,
+          authForm: {
+            email: '',
+            password: ''
+          },
           lastSyncTime: localStorage.getItem('momo_last_sync_time') || null,
           syncReport: safeParse(localStorage.getItem('momo_sync_report'), null),
           closeoutRecords: {},
@@ -4181,6 +4227,7 @@
       },
       mounted() {
         this.loadFromLocalStorage();
+        this.initAuth();
         window.addEventListener('online', () => { this.online = true; });
         window.addEventListener('offline', () => { this.online = false; });
         const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -4800,6 +4847,175 @@
           }, duration);
         },
 
+        // Supabase Authentication
+        async fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+          try {
+            return await fetch(url, { ...options, signal: controller.signal });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        },
+        async initAuth() {
+          this.authLoading = true;
+          const candidates = ['http://127.0.0.1:8000', 'https://mo2-z7d1.onrender.com'];
+          let config = null;
+          for (const baseUrl of candidates) {
+            try {
+              const response = await this.fetchWithTimeout(`${baseUrl}/api/config`, {}, baseUrl.includes('127.0.0.1') ? 1200 : 12000);
+              if (!response.ok) continue;
+              config = await response.json();
+              this.apiBaseUrl = baseUrl;
+              break;
+            } catch (error) {
+              // 嘗試下一個後端；未部署設定時維持本機模式。
+            }
+          }
+
+          if (!config) {
+            this.authLoading = false;
+            return;
+          }
+
+          this.authConfig = {
+            configured: Boolean(config.auth_configured),
+            required: Boolean(config.auth_required),
+            supabaseUrl: config.supabase_url || '',
+            publishableKey: config.supabase_publishable_key || ''
+          };
+
+          if (!this.authConfig.configured) {
+            this.authLoading = false;
+            if (this.authConfig.required) {
+              this.authError = 'Render 尚未設定 Supabase URL 與 Publishable Key';
+              this.showAuthSheet = true;
+            }
+            return;
+          }
+
+          if (this.authSession?.access_token) {
+            const valid = await this.restoreSupabaseSession();
+            if (valid) {
+              this.authLoading = false;
+              return;
+            }
+          }
+          this.authLoading = false;
+          this.showAuthSheet = this.authConfig.required;
+        },
+        supabaseHeaders(accessToken = null) {
+          const headers = {
+            apikey: this.authConfig.publishableKey,
+            'Content-Type': 'application/json'
+          };
+          if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+          return headers;
+        },
+        persistAuthSession(session) {
+          this.authSession = {
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            expires_at: session.expires_at || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600)
+          };
+          localStorage.setItem('momo_auth_session', JSON.stringify(this.authSession));
+          this.authUser = session.user || this.authUser;
+        },
+        async restoreSupabaseSession() {
+          const expiresSoon = Number(this.authSession?.expires_at || 0) <= Math.floor(Date.now() / 1000) + 60;
+          if (expiresSoon && this.authSession?.refresh_token) return this.refreshSupabaseSession();
+          try {
+            const response = await this.fetchWithTimeout(
+              `${this.authConfig.supabaseUrl}/auth/v1/user`,
+              { headers: this.supabaseHeaders(this.authSession.access_token) },
+              8000
+            );
+            if (response.ok) {
+              this.authUser = await response.json();
+              return true;
+            }
+          } catch (error) {
+            this.authError = '目前無法驗證登入狀態';
+          }
+          return this.authSession?.refresh_token ? this.refreshSupabaseSession() : false;
+        },
+        async refreshSupabaseSession() {
+          if (!this.authSession?.refresh_token) return false;
+          try {
+            const response = await this.fetchWithTimeout(
+              `${this.authConfig.supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
+              {
+                method: 'POST',
+                headers: this.supabaseHeaders(),
+                body: JSON.stringify({ refresh_token: this.authSession.refresh_token })
+              },
+              10000
+            );
+            if (!response.ok) throw new Error('refresh_failed');
+            this.persistAuthSession(await response.json());
+            return true;
+          } catch (error) {
+            localStorage.removeItem('momo_auth_session');
+            this.authSession = null;
+            this.authUser = null;
+            return false;
+          }
+        },
+        async signInWithSupabase() {
+          if (!this.authConfig.configured) {
+            this.authError = 'Supabase 尚未完成設定';
+            return;
+          }
+          this.authLoading = true;
+          this.authError = '';
+          try {
+            const response = await this.fetchWithTimeout(
+              `${this.authConfig.supabaseUrl}/auth/v1/token?grant_type=password`,
+              {
+                method: 'POST',
+                headers: this.supabaseHeaders(),
+                body: JSON.stringify({ email: this.authForm.email, password: this.authForm.password })
+              },
+              12000
+            );
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error_description || result.msg || 'Email 或密碼錯誤');
+            this.persistAuthSession(result);
+            this.authForm.password = '';
+            this.showAuthSheet = false;
+            this.showToast('🔐 雲端登入成功');
+          } catch (error) {
+            this.authError = error.message || '登入失敗，請稍後再試';
+            this.authForm.password = '';
+          } finally {
+            this.authLoading = false;
+          }
+        },
+        async signOutSupabase() {
+          const token = this.authSession?.access_token;
+          if (token && this.authConfig.configured) {
+            try {
+              await this.fetchWithTimeout(
+                `${this.authConfig.supabaseUrl}/auth/v1/logout`,
+                { method: 'POST', headers: this.supabaseHeaders(token) },
+                5000
+              );
+            } catch (error) {
+              // 即使遠端登出失敗，也清除本機 session。
+            }
+          }
+          localStorage.removeItem('momo_auth_session');
+          this.authSession = null;
+          this.authUser = null;
+          this.showAuthSheet = this.authConfig.required;
+          this.showToast('已登出雲端帳號');
+        },
+        authHeaders() {
+          return this.authSession?.access_token
+            ? { Authorization: `Bearer ${this.authSession.access_token}` }
+            : {};
+        },
+
         // API Sync & Data washing
         shiftMonth(direction) {
           this.ordersCustomerHistoryId = null;
@@ -4831,6 +5047,11 @@
           }
         },
         async syncFromApi() {
+          if (this.authConfig.required && !this.authSession?.access_token) {
+            this.authError = '請先登入後再同步行事曆';
+            this.showAuthSheet = true;
+            return;
+          }
           // 全年模式下提示用戶選擇月份
           if (this.selectedMonth === 'All') {
             this.showToast('📅 請先選擇特定月份再同步，全年模式下後端只會回傳當月資料', 'error', 5000);
@@ -4858,7 +5079,7 @@
             
             response = await fetch(`http://127.0.0.1:8000/api/sync${queryString}`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
               body: JSON.stringify({}),
               signal: controller.signal
             });
@@ -4870,7 +5091,7 @@
             try {
               response = await fetch(`https://mo2-z7d1.onrender.com/api/sync${queryString}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...this.authHeaders() },
                 body: JSON.stringify({})
               });
             } catch (err) {
